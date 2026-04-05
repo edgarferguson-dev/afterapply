@@ -35,11 +35,11 @@ export default function App() {
         onRefresh={refresh}
       />
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
         {showBlockingLoader ? (
           <LoadingApplications />
         ) : (
-          <div className="space-y-6 sm:space-y-8">
+          <div className="space-y-4 sm:space-y-5">
             {dataSource === "live" && applications.length === 0 && (
               <LiveSheetEmpty />
             )}
@@ -51,8 +51,8 @@ export default function App() {
         )}
       </main>
 
-      <footer className="border-t border-zinc-800/30 py-5">
-        <p className="text-center text-[11px] text-zinc-600 tracking-wide">
+      <footer className="border-t border-surface-subtle py-3">
+        <p className="text-center text-[10px] text-tertiary tracking-wide">
           AfterApply — Built for job seekers who want a system.
         </p>
       </footer>

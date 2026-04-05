@@ -40,15 +40,15 @@ function AttentionItem({ app, reasonTag, reasonColor, icon: Icon, actionLabel })
   const actionStyle = ACTION_STYLES[actionLabel] || ACTION_STYLES["Review"];
 
   return (
-    <div className="group flex items-center gap-3 rounded-xl border border-zinc-800/40 bg-zinc-900/30 px-4 py-3 transition-all duration-150 hover:bg-zinc-800/30 hover:border-zinc-700/40 sm:gap-4">
+    <div className="group flex items-center gap-3 rounded-xl border border-surface-subtle bg-surface-50 px-4 py-2.5 transition-all duration-150 hover:bg-surface-100 hover:border-surface sm:gap-4">
       {/* Priority icon */}
       <div
         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
           reasonColor === "rose"
-            ? "bg-rose-500/10"
+            ? "bg-rose-500/15 ring-1 ring-rose-500/25"
             : reasonColor === "amber"
-            ? "bg-amber-500/10"
-            : "bg-cyan-500/10"
+            ? "bg-amber-500/15 ring-1 ring-amber-500/25"
+            : "bg-cyan-500/15 ring-1 ring-cyan-500/25"
         }`}
       >
         <Icon
@@ -59,19 +59,19 @@ function AttentionItem({ app, reasonTag, reasonColor, icon: Icon, actionLabel })
               ? "text-amber-400"
               : "text-cyan-400"
           }`}
-          strokeWidth={1.8}
+          strokeWidth={2}
         />
       </div>
 
       {/* Main info */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-semibold text-zinc-200 text-sm truncate">
+          <span className="font-semibold text-primary text-sm truncate">
             {app.company}
           </span>
           <StatusPill status={app.status} size="xs" />
         </div>
-        <p className="truncate text-xs text-zinc-500 mt-0.5">{app.role}</p>
+        <p className="truncate text-xs text-tertiary mt-0.5">{app.role}</p>
       </div>
 
       {/* Action label */}
@@ -85,12 +85,12 @@ function AttentionItem({ app, reasonTag, reasonColor, icon: Icon, actionLabel })
       {/* Reason tag */}
       <div className="shrink-0 text-right">
         <span
-          className={`text-[11px] font-mono whitespace-nowrap ${
+          className={`text-[11px] font-semibold font-mono whitespace-nowrap ${
             reasonColor === "rose"
-              ? "text-rose-400/80"
+              ? "text-rose-400"
               : reasonColor === "amber"
-              ? "text-amber-400/80"
-              : "text-cyan-400/80"
+              ? "text-amber-400"
+              : "text-cyan-400"
           }`}
         >
           {reasonTag}
@@ -102,13 +102,13 @@ function AttentionItem({ app, reasonTag, reasonColor, icon: Icon, actionLabel })
 
 function EmptyState({ icon: Icon, title, description, accent }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-dashed border-zinc-800/50 bg-zinc-900/20 px-4 py-4">
-      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-800/30`}>
+    <div className="flex items-center gap-3 rounded-xl border border-dashed border-surface-subtle bg-surface-50 px-4 py-3">
+      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-100`}>
         <Icon className={`h-4 w-4 ${accent}`} strokeWidth={1.5} />
       </div>
       <div>
-        <p className="text-sm font-medium text-zinc-500">{title}</p>
-        <p className="text-xs text-zinc-600 mt-0.5">{description}</p>
+        <p className="text-sm font-medium text-secondary">{title}</p>
+        <p className="text-xs text-tertiary mt-0.5">{description}</p>
       </div>
     </div>
   );
@@ -174,18 +174,18 @@ export default function NeedsAttention({ applications }) {
 
   return (
     <section>
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-3">
         {(hasOverdue || hasDueToday) && (
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500" />
           </span>
         )}
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-secondary">
           Needs Attention
         </h2>
         {items.length > 0 && (
-          <span className="text-[10px] font-mono text-zinc-600">
+          <span className="text-[10px] font-mono text-tertiary">
             {items.length}
           </span>
         )}
@@ -199,7 +199,7 @@ export default function NeedsAttention({ applications }) {
           accent="text-emerald-500/60"
         />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {items.map(({ app, reasonTag, reasonColor, icon, actionLabel }) => (
             <AttentionItem
               key={app.id}

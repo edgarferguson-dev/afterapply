@@ -67,7 +67,7 @@ const cards = [
 
 export default function SummaryCards({ applications }) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
       {cards.map(({ key, label, icon: Icon, accent, bg, ring, glow }) => {
         const count =
           key === "due_today"
@@ -77,7 +77,7 @@ export default function SummaryCards({ applications }) {
         return (
           <div
             key={key}
-            className={`group relative rounded-xl border border-zinc-800/50 bg-zinc-900/40 p-4 ring-1 transition-all duration-200 hover:bg-zinc-900/60 ${ring} ${glow}`}
+            className={`group relative rounded-xl border border-surface-subtle bg-surface-50 p-3.5 ring-1 transition-all duration-200 hover:bg-surface-100 ${ring} ${glow}`}
           >
             <div className="flex items-center justify-between">
               <div
@@ -85,11 +85,11 @@ export default function SummaryCards({ applications }) {
               >
                 <Icon className={`h-4 w-4 ${accent}`} strokeWidth={1.8} />
               </div>
-              <span className="text-2xl font-bold tabular-nums tracking-tight text-zinc-100">
+              <span className="text-2xl font-bold tabular-nums tracking-tight text-primary">
                 {count}
               </span>
             </div>
-            <p className="mt-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
+            <p className="mt-2.5 text-[10px] font-semibold uppercase tracking-widest text-tertiary">
               {label}
             </p>
           </div>
