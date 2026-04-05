@@ -1,4 +1,4 @@
-const raw = import.meta.env.VITE_AFTERAPPLY_APPS_SCRIPT_URL;
+const raw = import.meta.env.VITE_GOOGLE_SCRIPT_URL;
 
 /** @type {string | null} */
 export const appsScriptUrl =
