@@ -4,6 +4,7 @@ import ActivityStrip from "./components/ActivityStrip";
 import NeedsAttention from "./components/NeedsAttention";
 import ApplicationList from "./components/ApplicationList";
 import DataSyncStatus from "./components/DataSyncStatus";
+import LiveSheetEmpty from "./components/LiveSheetEmpty";
 import LoadingApplications from "./components/LoadingApplications";
 import { useApplicationsData } from "./hooks/useApplicationsData";
 import { getPipelineStats } from "./utils/helpers";
@@ -39,6 +40,9 @@ export default function App() {
           <LoadingApplications />
         ) : (
           <div className="space-y-6 sm:space-y-8">
+            {dataSource === "live" && applications.length === 0 && (
+              <LiveSheetEmpty />
+            )}
             <SummaryCards applications={applications} />
             <ActivityStrip stats={stats} activityLog={activityLog} />
             <NeedsAttention applications={applications} />

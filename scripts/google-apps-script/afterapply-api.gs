@@ -5,19 +5,42 @@
  * - Execute as: Me
  * - Who has access: Anyone (required for browser fetch from your Vite app)
  *
- * Set SPREADSHEET_ID and SHEET_NAME to match your Google Sheet.
- * Header row column names can be human-readable; map them in rowToApplication().
+ * The Applications tab MUST use row 1 headers exactly as APPLICATION_HEADERS below.
+ * Copy/paste that row into your sheet — spelling and spacing must match.
  */
 
 var SPREADSHEET_ID = "YOUR_SPREADSHEET_ID_HERE";
-var SHEET_NAME = "Applications";
+var APPLICATIONS_SHEET_NAME = "Applications";
+var ACTIVITY_SHEET_NAME = "Activity";
+
+/** Exact column titles for row 1 of the Applications sheet (trimmed when read). */
+var APPLICATION_HEADERS = {
+  CASE_CODE: "Case Code",
+  COMPANY: "Company",
+  ROLE: "Role",
+  DATE_APPLIED: "Date Applied",
+  STATUS: "Status",
+  JOB_LINK: "Job Link",
+  LAST_UPDATED: "Last Updated",
+  NEXT_FOLLOW_UP: "Next Follow Up",
+  NOTES: "Notes",
+};
+
+/** Exact column titles for row 1 of the Activity sheet (optional tab). */
+var ACTIVITY_HEADERS = {
+  ID: "ID",
+  TIMESTAMP: "Timestamp",
+  ACTION: "Action",
+  COMPANY: "Company",
+  TYPE: "Type",
+};
 
 function doGet() {
   try {
     var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    var sheet = ss.getSheetByName(SHEET_NAME);
+    var sheet = ss.getSheetByName(APPLICATIONS_SHEET_NAME);
     if (!sheet) {
-      return jsonOut({ ok: false, error: "Sheet not found: " + SHEET_NAME });
+      return jsonOut({ ok: false, error: "Sheet not found: " + APPLICATIONS_SHEET_NAME });
     }
 
     var values = sheet.getDataRange().getValues();
@@ -33,11 +56,14 @@ function doGet() {
     var headers = values[0].map(function (h) {
       return String(h).trim();
     });
+    validateApplicationHeaders_(headers);
+
     var applications = [];
     for (var r = 1; r < values.length; r++) {
       var row = values[r];
-      if (rowJoin(row) === "") continue;
-      applications.push(rowToApplication(headers, row, r));
+      if (rowJoin_(row) === "") continue;
+      var rowMap = rowToMap_(headers, row);
+      applications.push(rowToApplication(rowMap, r));
     }
 
     var activityLog = readActivityLog_(ss);
@@ -53,7 +79,28 @@ function doGet() {
   }
 }
 
-function rowJoin(row) {
+function validateApplicationHeaders_(headers) {
+  var required = [
+    APPLICATION_HEADERS.CASE_CODE,
+    APPLICATION_HEADERS.COMPANY,
+    APPLICATION_HEADERS.ROLE,
+    APPLICATION_HEADERS.DATE_APPLIED,
+    APPLICATION_HEADERS.STATUS,
+    APPLICATION_HEADERS.JOB_LINK,
+    APPLICATION_HEADERS.LAST_UPDATED,
+    APPLICATION_HEADERS.NEXT_FOLLOW_UP,
+    APPLICATION_HEADERS.NOTES,
+  ];
+  var missing = [];
+  for (var i = 0; i < required.length; i++) {
+    if (headers.indexOf(required[i]) === -1) missing.push(required[i]);
+  }
+  if (missing.length) {
+    throw new Error("Missing required column(s): " + missing.join(", "));
+  }
+}
+
+function rowJoin_(row) {
   return row
     .map(function (c) {
       return String(c).trim();
@@ -61,50 +108,66 @@ function rowJoin(row) {
     .join("");
 }
 
-/**
- * Map your sheet columns to the keys the AfterApply frontend expects.
- * Adjust the header names to match row 1 of your sheet.
- */
-function rowToApplication(headers, row, rowIndex) {
+function rowToMap_(headers, row) {
   var o = {};
   for (var i = 0; i < headers.length; i++) {
     o[headers[i]] = row[i];
   }
+  return o;
+}
+
+/**
+ * Reads one data row using ONLY the canonical header names.
+ * Outputs camelCase keys matching the AfterApply frontend contract.
+ */
+function rowToApplication(rowMap, rowIndex) {
+  var caseCode = cellStr_(rowMap, APPLICATION_HEADERS.CASE_CODE);
+  var id = caseCode || "row-" + rowIndex;
 
   return {
-    id: pick_(o, ["id", "ID", "Row ID"]) || "row-" + rowIndex,
-    company: pick_(o, ["company", "Company"]),
-    role: pick_(o, ["role", "Role", "Title"]),
-    dateApplied: formatDate_(pick_(o, ["dateApplied", "Date Applied", "Applied"])),
-    status: pick_(o, ["status", "Status", "Stage"]),
-    caseCode: pick_(o, ["caseCode", "Case Code", "Case"]),
-    jobLink: pick_(o, ["jobLink", "Job Link", "URL", "Link"]),
-    lastUpdated: formatDate_(pick_(o, ["lastUpdated", "Last Updated", "Updated"])),
-    nextFollowUpDate: formatDate_(pick_(o, ["nextFollowUpDate", "Next Follow Up", "Follow Up"])),
-    notes: pick_(o, ["notes", "Notes"]),
+    id: id,
+    company: cellStr_(rowMap, APPLICATION_HEADERS.COMPANY),
+    role: cellStr_(rowMap, APPLICATION_HEADERS.ROLE),
+    dateApplied: formatDate_(rowMap[APPLICATION_HEADERS.DATE_APPLIED]),
+    status: cellStr_(rowMap, APPLICATION_HEADERS.STATUS),
+    caseCode: caseCode,
+    jobLink: cellStr_(rowMap, APPLICATION_HEADERS.JOB_LINK),
+    lastUpdated: formatDate_(rowMap[APPLICATION_HEADERS.LAST_UPDATED]),
+    nextFollowUpDate: formatDate_(rowMap[APPLICATION_HEADERS.NEXT_FOLLOW_UP]),
+    notes: cellStr_(rowMap, APPLICATION_HEADERS.NOTES),
   };
 }
 
-function pick_(obj, keys) {
-  for (var i = 0; i < keys.length; i++) {
-    var k = keys[i];
-    if (obj[k] !== undefined && obj[k] !== null && String(obj[k]).trim() !== "") {
-      return obj[k];
-    }
-  }
-  return "";
+function cellStr_(rowMap, header) {
+  var v = rowMap[header];
+  if (v === undefined || v === null) return "";
+  return String(v).trim();
 }
 
+/**
+ * Normalizes Sheet values to yyyy-MM-dd for JSON.
+ * Handles Date objects, serial numbers, and string literals.
+ */
 function formatDate_(v) {
   if (v === "" || v === null || v === undefined) return "";
   if (Object.prototype.toString.call(v) === "[object Date]" && !isNaN(v)) {
     return Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd");
   }
+  if (typeof v === "number" && !isNaN(v)) {
+    var whole = Math.floor(v);
+    if (whole >= 1 && whole < 1000000) {
+      var epochMs = (whole - 25569) * 86400 * 1000;
+      var d = new Date(epochMs);
+      if (!isNaN(d.getTime())) {
+        return Utilities.formatDate(d, Session.getScriptTimeZone(), "yyyy-MM-dd");
+      }
+    }
+  }
   return String(v).trim();
 }
 
 function readActivityLog_(ss) {
-  var sh = ss.getSheetByName("Activity");
+  var sh = ss.getSheetByName(ACTIVITY_SHEET_NAME);
   if (!sh) return [];
 
   var values = sh.getDataRange().getValues();
@@ -116,17 +179,14 @@ function readActivityLog_(ss) {
   var out = [];
   for (var r = 1; r < values.length; r++) {
     var row = values[r];
-    if (rowJoin(row) === "") continue;
-    var o = {};
-    for (var i = 0; i < headers.length; i++) {
-      o[headers[i]] = row[i];
-    }
+    if (rowJoin_(row) === "") continue;
+    var o = rowToMap_(headers, row);
     out.push({
-      id: pick_(o, ["id", "ID"]) || "ev-" + r,
-      timestamp: formatDate_(pick_(o, ["timestamp", "Date", "Time"])),
-      action: pick_(o, ["action", "Action", "Description"]),
-      company: pick_(o, ["company", "Company"]),
-      type: String(pick_(o, ["type", "Type"]) || "applied").toLowerCase(),
+      id: cellStr_(o, ACTIVITY_HEADERS.ID) || "ev-" + r,
+      timestamp: formatDate_(o[ACTIVITY_HEADERS.TIMESTAMP]),
+      action: cellStr_(o, ACTIVITY_HEADERS.ACTION),
+      company: cellStr_(o, ACTIVITY_HEADERS.COMPANY),
+      type: String(cellStr_(o, ACTIVITY_HEADERS.TYPE) || "applied").toLowerCase(),
     });
   }
   return out;

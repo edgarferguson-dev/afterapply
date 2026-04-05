@@ -181,18 +181,31 @@ export default function ApplicationList({ applications }) {
             </tr>
           </thead>
           <tbody>
-            {sorted.map((app) => (
-              <ApplicationRow key={app.id} app={app} />
-            ))}
+            {sorted.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="px-4 py-14 text-center text-sm text-zinc-500"
+                >
+                  No applications to show.
+                </td>
+              </tr>
+            ) : (
+              sorted.map((app) => <ApplicationRow key={app.id} app={app} />)
+            )}
           </tbody>
         </table>
       </div>
 
       {/* Mobile cards */}
       <div className="sm:hidden space-y-2.5">
-        {sorted.map((app) => (
-          <ApplicationCard key={app.id} app={app} />
-        ))}
+        {sorted.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-zinc-800/50 bg-zinc-900/20 py-12 text-center text-sm text-zinc-500">
+            No applications to show.
+          </div>
+        ) : (
+          sorted.map((app) => <ApplicationCard key={app.id} app={app} />)
+        )}
       </div>
     </section>
   );

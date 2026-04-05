@@ -1,6 +1,63 @@
 import { STATUS_CONFIG } from "../utils/helpers";
+import {
+  APPLICATION_SHEET_HEADERS,
+  ACTIVITY_SHEET_HEADERS,
+} from "../data/applicationSchema";
 
 const VALID_STATUSES = new Set(Object.keys(STATUS_CONFIG));
+
+const H = APPLICATION_SHEET_HEADERS;
+const AH = ACTIVITY_SHEET_HEADERS;
+
+/**
+ * Maps common sheet / human labels to a canonical status.
+ * Output is always one of the keys of STATUS_CONFIG.
+ */
+const STATUS_SLUG_ALIASES = {
+  pending: "waiting",
+  new: "waiting",
+  applied: "waiting",
+  wait: "waiting",
+  waiting: "waiting",
+  queue: "waiting",
+  queued: "waiting",
+  outreach: "waiting",
+  no_response: "waiting",
+  noresponse: "waiting",
+  no_reply: "waiting",
+  silent: "waiting",
+
+  followedup: "followed_up",
+  "follow-up": "followed_up",
+  follow_up: "followed_up",
+  followup: "followed_up",
+  followed: "followed_up",
+  nudge: "followed_up",
+  ping: "followed_up",
+
+  reply: "responded",
+  replied: "responded",
+  response: "responded",
+  recruiter: "responded",
+  engaged: "responded",
+
+  screening: "interview",
+  phone_screen: "interview",
+  phone: "interview",
+  onsite: "interview",
+  on_site: "interview",
+  on_site_interview: "interview",
+  loop: "interview",
+
+  rejected: "closed",
+  decline: "closed",
+  declined: "closed",
+  lost: "closed",
+  archive: "closed",
+  archived: "closed",
+  filled: "closed",
+  dead: "closed",
+};
 
 function pick(obj, keys) {
   for (const k of keys) {
@@ -9,62 +66,166 @@ function pick(obj, keys) {
   return undefined;
 }
 
-function toIsoDate(value) {
-  if (value === null || value === undefined || value === "") return null;
-  if (typeof value === "number" && !Number.isNaN(value)) {
-    const epoch = new Date((value - 25569) * 86400 * 1000);
-    if (!Number.isNaN(epoch.getTime())) {
-      return epoch.toISOString().split("T")[0];
-    }
-  }
-  const s = String(value).trim();
-  if (!s) return null;
-  const d = new Date(s);
-  if (!Number.isNaN(d.getTime())) return d.toISOString().split("T")[0];
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  return s;
-}
-
-function normalizeStatus(value) {
-  if (value === null || value === undefined) return "waiting";
-  let s = String(value).trim().toLowerCase().replace(/\s+/g, "_");
-  if (s === "followedup" || s === "follow-up" || s === "follow_up") s = "followed_up";
-  if (!VALID_STATUSES.has(s)) return "waiting";
-  return s;
+function slugStatusInput(value) {
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[\s/]+/g, "_")
+    .replace(/-+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
 }
 
 /**
- * Maps a row/object from the web app into the dashboard application shape.
+ * Strict, consistent status: always one of waiting | followed_up | responded | interview | closed.
+ */
+export function normalizeStatus(value) {
+  if (value === null || value === undefined) return "waiting";
+  const raw = String(value).trim();
+  if (!raw) return "waiting";
+
+  const slug = slugStatusInput(raw);
+  if (VALID_STATUSES.has(slug)) return slug;
+
+  const mapped = STATUS_SLUG_ALIASES[slug];
+  if (mapped && VALID_STATUSES.has(mapped)) return mapped;
+
+  const collapsed = slug.replace(/_/g, "");
+  if (collapsed === "followedup") return "followed_up";
+
+  return "waiting";
+}
+
+/** Google Sheets / Excel serial date → UTC calendar ISO date (date part only). */
+function serialToIsoDate(serial) {
+  const whole = Math.floor(Number(serial));
+  if (!Number.isFinite(whole) || whole < 1) return null;
+  const ms = (whole - 25569) * 86400 * 1000;
+  const d = new Date(ms);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 10);
+}
+
+function isLikelyDateSerial(n) {
+  if (typeof n !== "number" || !Number.isFinite(n)) return false;
+  if (Number.isInteger(n) && n >= 1900 && n <= 2100) return false;
+  return n >= 1 && n < 1_000_000;
+}
+
+function dateToLocalIsoDate(d) {
+  if (!(d instanceof Date) || Number.isNaN(d.getTime())) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {string|null}  YYYY-MM-DD or null if unknown / invalid
+ */
+export function parseIsoDate(value) {
+  if (value === null || value === undefined || value === "") return null;
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    if (isLikelyDateSerial(value)) return serialToIsoDate(value);
+    return null;
+  }
+
+  const s = String(value).trim();
+  if (!s) return null;
+
+  const ymd = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (ymd) {
+    const candidate = `${ymd[1]}-${ymd[2]}-${ymd[3]}`;
+    const test = new Date(candidate + "T12:00:00");
+    if (!Number.isNaN(test.getTime())) return candidate;
+    return null;
+  }
+
+  const numeric = Number(s);
+  if (s !== "" && !Number.isNaN(numeric) && /^[\d.]+$/.test(s) && isLikelyDateSerial(numeric)) {
+    return serialToIsoDate(numeric);
+  }
+
+  const parsed = new Date(s);
+  if (!Number.isNaN(parsed.getTime())) {
+    return dateToLocalIsoDate(parsed);
+  }
+
+  const us = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (us) {
+    const mm = parseInt(us[1], 10);
+    const dd = parseInt(us[2], 10);
+    const yy = parseInt(us[3], 10);
+    const d = new Date(yy, mm - 1, dd, 12, 0, 0, 0);
+    if (!Number.isNaN(d.getTime())) return dateToLocalIsoDate(d);
+  }
+
+  return null;
+}
+
+function strOrEmpty(v) {
+  if (v === null || v === undefined) return "";
+  return String(v).trim();
+}
+
+/**
+ * Maps a row/object from the web app into {@link Application}.
+ * Accepts camelCase API objects and legacy / header-keyed rows for resilience.
  * @param {Record<string, unknown>} raw
  * @param {number} [rowIndex]
  */
 export function normalizeApplication(raw, rowIndex = 0) {
-  const company = String(pick(raw, ["company", "Company", "companyName"]) ?? "").trim();
-  const role = String(pick(raw, ["role", "Role", "title", "Title", "jobTitle"]) ?? "").trim();
-  const caseCode = String(
-    pick(raw, ["caseCode", "case_code", "Case Code", "CaseCode", "id"]) ?? ""
-  ).trim();
+  const company = strOrEmpty(
+    pick(raw, ["company", H.company, "Company", "companyName"])
+  );
+  const role = strOrEmpty(pick(raw, ["role", H.role, "Role", "title", "Title", "jobTitle"]));
+
+  const caseCode = strOrEmpty(
+    pick(raw, ["caseCode", H.caseCode, "case_code", "CaseCode", "Case"])
+  );
+
   const explicitId = pick(raw, ["id", "ID", "rowId"]);
-  const id = String(
+  const id = strOrEmpty(
     explicitId != null && String(explicitId).trim() !== ""
       ? explicitId
       : caseCode || `row-${rowIndex}`
-  ).trim();
+  );
 
-  const dateApplied = toIsoDate(pick(raw, ["dateApplied", "date_applied", "Date Applied", "applied"])) ?? "";
-  const lastUpdated = toIsoDate(pick(raw, ["lastUpdated", "last_updated", "Last Updated", "updated"])) ?? dateApplied;
+  const dateApplied =
+    parseIsoDate(pick(raw, ["dateApplied", H.dateApplied, "date_applied", "Applied"])) ?? "";
+  const lastUpdatedRaw = pick(raw, [
+    "lastUpdated",
+    H.lastUpdated,
+    "last_updated",
+    "Updated",
+  ]);
+  const lastUpdated = parseIsoDate(lastUpdatedRaw) ?? dateApplied;
+
   const nextRaw = pick(raw, [
     "nextFollowUpDate",
+    H.nextFollowUp,
     "next_follow_up_date",
-    "Next Follow Up",
     "nextFollowUp",
     "followUp",
+    "Follow Up",
   ]);
-  const nextFollowUpDate = toIsoDate(nextRaw);
+  const nextFollowUpDate = parseIsoDate(nextRaw);
 
-  const status = normalizeStatus(pick(raw, ["status", "Status", "Stage"]));
-  const jobLink = String(pick(raw, ["jobLink", "job_link", "Job Link", "url", "URL"]) ?? "").trim();
-  const notes = String(pick(raw, ["notes", "Notes", "comment"]) ?? "").trim();
+  const status = normalizeStatus(pick(raw, ["status", H.status, "Status", "Stage"]));
+
+  let jobLink = strOrEmpty(pick(raw, ["jobLink", H.jobLink, "job_link", "URL", "Link", "url"]));
+  if (
+    jobLink &&
+    jobLink !== "#" &&
+    !/^[a-z][a-z0-9+.-]*:/i.test(jobLink)
+  ) {
+    jobLink = `https://${jobLink}`;
+  }
+  if (!jobLink) jobLink = "#";
+
+  const notes = strOrEmpty(pick(raw, ["notes", H.notes, "Notes", "comment"]));
 
   return {
     id: id || caseCode || `${company}-${role}-${rowIndex}`,
@@ -73,7 +234,7 @@ export function normalizeApplication(raw, rowIndex = 0) {
     dateApplied,
     status,
     caseCode: caseCode || id,
-    jobLink: jobLink || "#",
+    jobLink,
     lastUpdated,
     nextFollowUpDate,
     notes,
@@ -86,11 +247,19 @@ const ACTIVITY_TYPES = new Set(["milestone", "follow_up", "response", "signal", 
  * @param {Record<string, unknown>} raw
  */
 export function normalizeActivityEvent(raw) {
-  const id = String(pick(raw, ["id", "ID"]) ?? "").trim() || `ev-${Math.random()}`;
-  const timestamp = toIsoDate(pick(raw, ["timestamp", "date", "time"])) ?? "";
-  const action = String(pick(raw, ["action", "Action", "description"]) ?? "").trim();
-  const company = String(pick(raw, ["company", "Company"]) ?? "").trim();
-  let type = String(pick(raw, ["type", "Type"]) ?? "applied").toLowerCase();
+  const id =
+    strOrEmpty(pick(raw, ["id", AH.id, "ID"])) ||
+    `ev-${Math.random().toString(36).slice(2, 9)}`;
+  const timestamp =
+    parseIsoDate(
+      pick(raw, ["timestamp", AH.timestamp, "date", "time", "Date"])
+    ) ?? "";
+  const action = strOrEmpty(
+    pick(raw, ["action", AH.action, "description", "Description"])
+  );
+  const company = strOrEmpty(pick(raw, ["company", AH.company, "Company"]));
+  let type =
+    strOrEmpty(pick(raw, ["type", AH.type, "Type"])).toLowerCase() || "applied";
   if (!ACTIVITY_TYPES.has(type)) type = "applied";
   return { id, timestamp, action, company, type };
 }

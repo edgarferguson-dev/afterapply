@@ -39,6 +39,7 @@ export const ACTIVITY_TYPE_CONFIG = {
 export function formatDate(dateStr) {
   if (!dateStr) return "—";
   const date = new Date(dateStr + "T00:00:00");
+  if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -49,11 +50,14 @@ export function formatDate(dateStr) {
 export function formatDateShort(dateStr) {
   if (!dateStr) return "—";
   const date = new Date(dateStr + "T00:00:00");
+  if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 export function relativeDay(dateStr) {
+  if (!dateStr) return "—";
   const diff = daysFromNow(dateStr);
+  if (Number.isNaN(diff)) return "—";
   if (diff === 0) return "Today";
   if (diff === -1) return "Yesterday";
   if (diff === 1) return "Tomorrow";
@@ -62,9 +66,11 @@ export function relativeDay(dateStr) {
 }
 
 export function daysFromNow(dateStr) {
+  if (!dateStr) return NaN;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const target = new Date(dateStr + "T00:00:00");
+  if (Number.isNaN(target.getTime())) return NaN;
   target.setHours(0, 0, 0, 0);
   return Math.round((target - today) / (1000 * 60 * 60 * 24));
 }

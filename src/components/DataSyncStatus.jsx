@@ -35,20 +35,25 @@ export default function DataSyncStatus({
           )}
 
           {isMock && (
-            <span className="flex items-center gap-2 text-zinc-500">
-              <Database className="h-3.5 w-3.5 text-zinc-600" strokeWidth={2} />
-              Demo data — set{" "}
-              <code className="rounded bg-zinc-800/80 px-1 py-0.5 font-mono text-[10px] text-zinc-400">
-                VITE_AFTERAPPLY_APPS_SCRIPT_URL
-              </code>{" "}
-              for live sync
+            <span className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-2 text-zinc-500">
+              <span className="flex items-center gap-2 font-medium text-zinc-400">
+                <Database className="h-3.5 w-3.5 text-zinc-600" strokeWidth={2} />
+                Demo data
+              </span>
+              <span className="text-zinc-600 sm:before:content-['·'] sm:before:mr-2">
+                Set{" "}
+                <code className="rounded bg-zinc-800/80 px-1 py-0.5 font-mono text-[10px] text-zinc-500">
+                  VITE_AFTERAPPLY_APPS_SCRIPT_URL
+                </code>{" "}
+                for live sync
+              </span>
             </span>
           )}
 
           {isLive && (
-            <span className="flex items-center gap-2 text-zinc-400">
+            <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-zinc-400">
               <Radio className="h-3.5 w-3.5 text-emerald-500" strokeWidth={2} />
-              <span className="font-medium text-zinc-300">Live</span>
+              <span className="font-medium text-zinc-300">Live data</span>
               {lastSyncedAt && (
                 <span className="font-mono text-zinc-500">
                   Last synced {formatSyncedAt(lastSyncedAt)}
@@ -61,12 +66,18 @@ export default function DataSyncStatus({
           )}
 
           {isFallback && (
-            <span className="flex items-center gap-2 text-amber-400/90">
-              <AlertCircle className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
-              <span className="font-medium">Sheet unavailable</span>
-              <span className="text-zinc-500">
-                Showing demo data{error ? ` — ${error}` : ""}
+            <span className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2">
+              <span className="flex items-center gap-2 text-amber-400/90">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+                <span className="font-medium">
+                  Live data unavailable — showing demo data
+                </span>
               </span>
+              {error && (
+                <span className="text-[11px] font-mono text-zinc-600 sm:pl-5">
+                  {error}
+                </span>
+              )}
             </span>
           )}
         </div>
