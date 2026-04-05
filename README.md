@@ -237,27 +237,22 @@ npm run build
 
 Output goes to `dist/`.
 
-### GitHub Pages (`username.github.io/repo-name/`)
+### GitHub Pages (`https://<user>.github.io/afterapply/`)
 
-Production builds use **`base: /afterapply/`** so JS/CSS resolve under the repo path.
+- **`vite.config.js`** sets **`base: "/afterapply/"`** for **`npm run build`** only (local **`npm run dev`** keeps **`base: "/"`**).
+- **`.github/workflows/pages.yml`** runs **`npm ci`** and **`npm run build`**, then publishes the contents of **`dist/`** to the **`gh-pages`** branch.
 
-**One-time setup (important):**
+**GitHub repo settings (required):**
 
-1. **Settings → Pages** in the GitHub repo.
-2. Under **Build and deployment → Source**, select **Deploy from a branch** (not “GitHub Actions”).
-3. **Branch**: **`gh-pages`**, folder **`/ (root)`**.  
-   - The first workflow run on `main` creates the `gh-pages` branch; refresh the branch dropdown if it is missing, then save again.
-4. After each push to `main`, wait for **Actions → Deploy to GitHub Pages** to finish (green check).
+| Setting | Value |
+|--------|--------|
+| **Settings → Pages → Build and deployment → Source** | **Deploy from a branch** (not “GitHub Actions”) |
+| **Branch** | **`gh-pages`** |
+| **Folder** | **`/ (root)`** |
+| **Settings → Actions → General → Workflow permissions** | **Read and write** (so the workflow can push `gh-pages`) |
 
-**Open the app at:** `https://edgarferguson-dev.github.io/afterapply/`  
-(That is the website — the repo URL `github.com/.../afterapply` is only the code.)
+After the first successful workflow run, pick **`gh-pages`** in the Pages branch dropdown if it was not listed before.
 
-**If it still looks blank:** hard refresh (Ctrl+Shift+R), try an incognito window, and confirm **Settings → Pages** shows “Your site is live at …” with the `github.io` link.
-
-**If the workflow fails** with permission errors: **Settings → Actions → General → Workflow permissions** → choose **Read and write permissions** (required so `GITHUB_TOKEN` can push the `gh-pages` branch).
-
-### Other hosts (site at domain root)
-
-Add `.env.production` with `VITE_BASE=/` so the build uses `/` instead of `/afterapply/`.
+**Site URL:** `https://edgarferguson-dev.github.io/afterapply/` (not the `github.com/...` code URL).
 
 Set `VITE_AFTERAPPLY_APPS_SCRIPT_URL` in the host’s environment (or build-time env) the same way as locally.

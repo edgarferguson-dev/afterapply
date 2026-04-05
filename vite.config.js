@@ -1,20 +1,13 @@
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 /**
- * GitHub Pages project sites are served from /repo-name/.
- * Set VITE_BASE=/ in .env.production when deploying to a host at the domain root (e.g. Vercel).
+ * GitHub Pages project URL: https://<user>.github.io/afterapply/
+ * Production builds must use base "/afterapply/" so asset URLs resolve under that path.
+ * Local dev keeps base "/" so you open http://localhost:5173/ without a subpath.
  */
-export default defineConfig(({ command, mode }) => {
-  const env = loadEnv(mode, process.cwd(), "");
-  let base = "/";
-  if (command === "build") {
-    const raw = env.VITE_BASE ?? "/afterapply/";
-    base = raw.endsWith("/") ? raw : `${raw}/`;
-  }
-  return {
-    base,
-    plugins: [react(), tailwindcss()],
-  };
-});
+export default defineConfig(({ command }) => ({
+  base: command === "build" ? "/afterapply/" : "/",
+  plugins: [react(), tailwindcss()],
+}));

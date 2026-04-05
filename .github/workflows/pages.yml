@@ -1,3 +1,6 @@
+# Publishes the Vite production build (folder `dist/`) to the `gh-pages` branch.
+# GitHub Pages must be set to deploy from that branch (see README).
+
 name: Deploy to GitHub Pages
 
 on:
@@ -5,7 +8,6 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# Push built site to `gh-pages` branch (classic Pages flow — no extra environment approval).
 permissions:
   contents: write
 
@@ -24,12 +26,18 @@ jobs:
           node-version: "22"
           cache: npm
 
-      - name: Install and build
-        run: |
-          npm ci
-          npm run build
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Publish to gh-pages branch
+      - name: Build (base /afterapply/)
+        run: npm run build
+
+      - name: Verify dist contains hashed assets under /afterapply/
+        run: |
+          test -f dist/index.html
+          grep -q '/afterapply/assets/' dist/index.html || (echo "Expected /afterapply/ in index.html asset paths" && exit 1)
+
+      - name: Publish dist to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
