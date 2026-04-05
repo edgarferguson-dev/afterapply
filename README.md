@@ -254,6 +254,8 @@ Production builds use **`base: /afterapply/`** so JS/CSS resolve under the repo 
 
 **If it still looks blank:** hard refresh (Ctrl+Shift+R), try an incognito window, and confirm **Settings → Pages** shows “Your site is live at …” with the `github.io` link.
 
+**If the workflow fails** with permission errors: **Settings → Actions → General → Workflow permissions** → choose **Read and write permissions** (required so `GITHUB_TOKEN` can push the `gh-pages` branch).
+
 ### Other hosts (site at domain root)
 
 Add `.env.production` with `VITE_BASE=/` so the build uses `/` instead of `/afterapply/`.
