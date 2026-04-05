@@ -9,128 +9,81 @@ import {
 import { getCountByStatus, getDueToday } from "../utils/helpers";
 
 const instrumentConfigs = [
-  {
-    key: "waiting",
-    label: "Waiting",
-    icon: Clock,
-    accent: "#fbbf24",
-    bgGlow: "glow-amber",
-    surface: "surface-200",
-    priority: 3,
-  },
-  {
-    key: "followed_up",
-    label: "Followed Up",
-    icon: Send,
-    accent: "#60a5fa",
-    bgGlow: "glow-blue",
-    surface: "surface-200",
-    priority: 2,
-  },
-  {
-    key: "responded",
-    label: "Responded",
-    icon: MessageSquare,
-    accent: "#34d399",
-    bgGlow: "glow-emerald",
-    surface: "surface-200",
-    priority: 2,
-  },
-  {
-    key: "interview",
-    label: "Interview",
-    icon: CalendarCheck,
-    accent: "#fbbf24",
-    bgGlow: "glow-amber",
-    surface: "surface-200",
-    priority: 1,
-  },
-  {
-    key: "closed",
-    label: "Closed",
-    icon: XCircle,
-    accent: "#9ca3af",
-    bgGlow: "",
-    surface: "surface-300",
-    priority: 4,
-  },
-  {
-    key: "due_today",
-    label: "Due Today",
-    icon: AlertTriangle,
-    accent: "#f87171",
-    bgGlow: "glow-rose",
-    surface: "surface-200",
-    priority: 0,
-  },
+  { key: "waiting", label: "Waiting", icon: Clock, accent: "var(--accent-blue)" },
+  { key: "followed_up", label: "Followed Up", icon: Send, accent: "var(--accent-cyan)" },
+  { key: "responded", label: "Responded", icon: MessageSquare, accent: "var(--accent-green)" },
+  { key: "interview", label: "Interview", icon: CalendarCheck, accent: "var(--accent-amber)" },
+  { key: "closed", label: "Closed", icon: XCircle, accent: "var(--text-muted)" },
+  { key: "due_today", label: "Due Today", icon: AlertTriangle, accent: "var(--accent-amber)" },
 ];
 
-function InstrumentGauge({ config, count, isPriority }) {
+function InstrumentGauge({ config, count, emphasis }) {
   const Icon = config.icon;
-  
+
   return (
-    <div className={`instrument-panel p-4 transition-premium ${isPriority ? config.bgGlow : ''} relative overflow-hidden group`}>
-      {/* Priority indicator */}
-      {isPriority && (
-        <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-400 animate-pulse" />
-      )}
-      
-      {/* Gauge display */}
-      <div className="flex flex-col items-center gap-3">
-        {/* Icon with glow */}
-        <div className="relative">
-          <div className={`h-10 w-10 rounded-xl ${config.surface} border-arch flex items-center justify-center`}>
-            <Icon 
-              className="h-5 w-5" 
-              style={{ color: config.accent }} 
-              strokeWidth={2}
-            />
-          </div>
-          {isPriority && (
-            <div className="absolute inset-0 h-10 w-10 rounded-xl" style={{ boxShadow: `0 0 20px ${config.accent}40` }} />
-          )}
-        </div>
-        
-        {/* Metric */}
-        <div className="text-center">
-          <div className={`text-3xl font-bold tabular-nums tracking-tight text-primary ${isPriority ? 'animate-pulse' : ''}`}>
+    <div
+      className={`rounded-[22px] border px-4 py-4 ${
+        emphasis
+          ? "border-white/12 bg-white/[0.065]"
+          : "border-white/[0.06] bg-white/[0.03]"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="mini-kicker">{config.label}</p>
+          <p className="mt-3 text-[1.7rem] font-semibold leading-none tracking-[-0.06em] text-[color:var(--text-primary)]">
             {count}
-          </div>
-          <div className="text-xs font-medium uppercase tracking-wider text-tertiary mt-1">
-            {config.label}
-          </div>
+          </p>
+        </div>
+        <div
+          className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-black/10"
+          style={{ color: config.accent }}
+        >
+          <Icon className="h-4.5 w-4.5" strokeWidth={1.8} />
         </div>
       </div>
-      
-      {/* Hover effect overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+      <div className="mt-4 h-px bg-white/[0.06]" />
+      <p className="mt-3 text-xs leading-5 text-[color:var(--text-secondary)]">
+        {emphasis
+          ? "Immediate follow-up pressure is present today."
+          : "A compact read on where the pipeline is sitting right now."}
+      </p>
     </div>
   );
 }
 
-export default function SummaryCards({ applications }) {
-  // Sort by priority
-  const sortedConfigs = [...instrumentConfigs].sort((a, b) => a.priority - b.priority);
-  
+export default function SummaryCards({ applications, stats }) {
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 mb-6">
-      {sortedConfigs.map((config) => {
-        const count =
-          config.key === "due_today"
-            ? getDueToday(applications).length
-            : getCountByStatus(applications, config.key);
-        
-        const isPriority = config.key === "due_today" && count > 0;
-        
-        return (
-          <InstrumentGauge
-            key={config.key}
-            config={config}
-            count={count}
-            isPriority={isPriority}
-          />
-        );
-      })}
-    </div>
+    <section className="panel rounded-[28px] px-4 py-4 sm:px-5">
+      <div className="mb-4 flex items-end justify-between gap-4">
+        <div>
+          <p className="section-label">Pipeline snapshot</p>
+          <h2 className="mt-2 text-lg font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">
+            Compact metrics, organized for quick scanning.
+          </h2>
+        </div>
+        <div className="hidden rounded-full border border-white/8 bg-white/[0.04] px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-[color:var(--text-muted)] sm:block">
+          {stats?.total ?? applications.length} applications tracked
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+        {instrumentConfigs.map((config) => {
+          const count =
+            config.key === "due_today"
+              ? getDueToday(applications).length
+              : getCountByStatus(applications, config.key);
+
+          return (
+            <InstrumentGauge
+              key={config.key}
+              config={config}
+              count={count}
+              emphasis={config.key === "due_today" && count > 0}
+            />
+          );
+        })}
+      </div>
+    </section>
   );
 }

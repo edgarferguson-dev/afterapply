@@ -1,7 +1,7 @@
-import { ExternalLink, ArrowUpDown, Grid, List, MoreVertical } from "lucide-react";
+import { ExternalLink, ArrowUpDown, CornerUpRight } from "lucide-react";
 import { useState } from "react";
 import StatusPill from "./StatusPill";
-import { formatDate } from "../utils/helpers";
+import { daysFromNow, formatDate, relativeDay } from "../utils/helpers";
 
 const STATUS_ORDER = {
   interview: 0,
@@ -11,66 +11,88 @@ const STATUS_ORDER = {
   closed: 4,
 };
 
-function DataCard({ app, isPriority = false }) {
+function getScheduleState(app) {
+  if (app.status === "closed") return "closed";
+  if (app.nextFollowUpDate) {
+    const diff = daysFromNow(app.nextFollowUpDate);
+    if (diff < 0) return "overdue";
+    if (diff === 0) return "due_today";
+  }
+  if (app.status === "interview") return "interview";
+  if (app.status === "responded") return "responded";
+  return "waiting";
+}
+
+function ScheduleBadge({ app }) {
+  const state = getScheduleState(app);
+  const labelMap = {
+    overdue: `${Math.abs(daysFromNow(app.nextFollowUpDate))}d overdue`,
+    due_today: "Due today",
+    waiting: app.nextFollowUpDate
+      ? `Follow up ${relativeDay(app.nextFollowUpDate).toLowerCase()}`
+      : "Awaiting next step",
+    interview: "Interview lane",
+    responded: "Recent reply",
+    closed: "Closed out",
+  };
+
   return (
-    <div className={`
-      data-surface p-4 transition-all duration-300 group
-      ${isPriority ? 'ring-2 ring-amber-500/30 glow-amber' : ''}
-      hover:scale-[1.02] hover:shadow-xl
-      relative overflow-hidden
-    `}>
-      {/* Priority indicator */}
-      {isPriority && (
-        <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-      )}
-      
-      {/* Header */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="min-w-0 flex-1">
-          <h3 className="text-display text-primary truncate mb-1">
+    <span className="status-pill" data-state={state}>
+      {labelMap[state]}
+    </span>
+  );
+}
+
+function LedgerRow({ app, isPriority = false }) {
+  return (
+    <article
+      className="ledger-row px-5 sm:grid-cols-[minmax(0,2.1fr)_minmax(9rem,0.85fr)_minmax(10rem,0.95fr)_minmax(8.5rem,0.8fr)_minmax(7rem,0.6fr)] sm:items-center"
+      data-priority={isPriority}
+    >
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="truncate text-[15px] font-semibold tracking-[-0.025em] text-[color:var(--text-primary)]">
             {app.company}
           </h3>
-          <p className="text-secondary text-sm truncate">{app.role}</p>
+          <StatusPill status={app.status} size="xs" />
         </div>
-        <div className="flex items-center gap-2">
-          <StatusPill status={app.status} size="sm" />
-          <button className="surface-100 h-8 w-8 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <MoreVertical className="h-4 w-4 text-tertiary" strokeWidth={1.5} />
-          </button>
+        <p className="mt-1 truncate text-sm text-[color:var(--text-secondary)]">{app.role}</p>
+      </div>
+
+      <div>
+        <p className="mini-kicker">Follow-up</p>
+        <div className="mt-2">
+          <ScheduleBadge app={app} />
         </div>
       </div>
-      
-      {/* Metadata grid */}
-      <div className="grid grid-cols-2 gap-3 mb-3">
-        <div className="surface-50 rounded-lg p-2">
-          <div className="text-xs text-tertiary uppercase tracking-wider mb-1">Applied</div>
-          <div className="text-sm font-mono text-secondary">{formatDate(app.dateApplied)}</div>
-        </div>
-        <div className="surface-50 rounded-lg p-2">
-          <div className="text-xs text-tertiary uppercase tracking-wider mb-1">Updated</div>
-          <div className="text-sm font-mono text-secondary">{formatDate(app.lastUpdated)}</div>
+
+      <div>
+        <p className="mini-kicker">Timeline</p>
+        <div className="mt-2 space-y-1">
+          <p className="text-sm text-[color:var(--text-primary)]">{formatDate(app.dateApplied)}</p>
+          <p className="mono-meta text-xs text-[color:var(--text-muted)]">
+            Updated {relativeDay(app.lastUpdated)}
+          </p>
         </div>
       </div>
-      
-      {/* Actions */}
-      <div className="flex items-center justify-between">
-        <div className="surface-100 px-2 py-1 rounded-lg">
-          <code className="text-xs font-mono text-tertiary">{app.caseCode}</code>
-        </div>
+
+      <div>
+        <p className="mini-kicker">Case</p>
+        <p className="mono-meta mt-2 text-sm text-[color:var(--text-secondary)]">{app.caseCode}</p>
+      </div>
+
+      <div className="flex items-center sm:justify-end">
         <a
           href={app.jobLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="surface-glass px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs text-secondary hover:text-primary transition-colors"
+          className="surface-button px-3 py-2 text-[11px] uppercase tracking-[0.16em]"
         >
-          <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
-          <span>View Listing</span>
+          Listing
+          <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.8} />
         </a>
       </div>
-      
-      {/* Hover overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-    </div>
+    </article>
   );
 }
 
@@ -89,64 +111,70 @@ function DataSurface({ applications, sortBy, setSortBy }) {
   });
 
   return (
-    <div className="data-surface p-6">
-      {/* Surface header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="surface-200 h-8 w-8 rounded-lg flex items-center justify-center">
-            <Grid className="h-4 w-4 text-primary" strokeWidth={2} />
-          </div>
-          <div>
-            <h2 className="text-display text-primary">Application Surface</h2>
-            <p className="text-xs text-tertiary">Interactive data layer</p>
-          </div>
+    <div className="ledger-shell overflow-hidden px-4 py-4 sm:px-5">
+      <div className="ledger-head flex flex-col gap-4 pb-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="section-label">Applications</p>
+          <h2 className="mt-2 text-xl font-semibold tracking-[-0.05em] text-[color:var(--text-primary)]">
+            A refined ledger for scanning status, timing, and context.
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[color:var(--text-secondary)]">
+            The hierarchy now comes from rhythm and contrast instead of card chrome, so each application reads like part of one coherent operating layer.
+          </p>
         </div>
-        
-        <div className="flex items-center gap-3">
-          <div className="surface-100 px-3 py-1.5 rounded-lg">
-            <span className="text-sm font-bold text-primary">{applications.length}</span>
-            <span className="text-xs text-tertiary ml-1">total</span>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-2 text-sm text-[color:var(--text-secondary)]">
+            <span className="font-semibold text-[color:var(--text-primary)]">{applications.length}</span>{" "}
+            tracked
           </div>
-          
-          <div className="surface-glass px-3 py-1.5 rounded-lg flex items-center gap-2">
-            <ArrowUpDown className="h-3 w-3 text-tertiary" strokeWidth={1.5} />
+          <div className="flex items-center gap-1 rounded-full border border-white/8 bg-white/[0.03] p-1">
+            <span className="inline-flex items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-[0.16em] text-[color:var(--text-muted)]">
+              <ArrowUpDown className="h-3.5 w-3.5" strokeWidth={1.8} />
+              Sort
+            </span>
             {["lastUpdated", "dateApplied", "status"].map((key) => (
               <button
                 key={key}
                 onClick={() => setSortBy(key)}
-                className={`text-xs px-2 py-1 rounded-md font-medium transition-colors ${
-                  sortBy === key
-                    ? "surface-200 text-primary border border-arch-subtle"
-                    : "text-tertiary hover:text-secondary"
-                }`}
+                className="surface-button px-3 py-2 text-[11px] uppercase tracking-[0.16em]"
+                data-active={sortBy === key ? "true" : "false"}
               >
-                {key === "lastUpdated"
-                  ? "Recent"
-                  : key === "dateApplied"
-                  ? "Applied"
-                  : "Status"}
+                {key === "lastUpdated" ? "Recent" : key === "dateApplied" ? "Applied" : "State"}
               </button>
             ))}
           </div>
         </div>
       </div>
-      
-      {/* Data grid */}
+
       {sorted.length === 0 ? (
-        <div className="surface-50 border-arch-subtle border-dashed rounded-xl p-12 text-center">
-          <List className="h-12 w-12 text-tertiary mx-auto mb-4" strokeWidth={1.5} />
-          <h3 className="text-display text-primary mb-2">No Applications</h3>
-          <p className="text-secondary">Your application data will appear here once synced.</p>
+        <div className="rounded-[22px] border border-dashed border-white/10 bg-black/10 px-5 py-14 text-center">
+          <CornerUpRight className="mx-auto h-10 w-10 text-[color:var(--text-muted)]" strokeWidth={1.6} />
+          <h3 className="mt-4 text-lg font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">
+            No applications yet
+          </h3>
+          <p className="mt-2 text-sm text-[color:var(--text-secondary)]">
+            Once your sheet is connected, this ledger becomes the steady operating view for the entire pipeline.
+          </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sorted.map((app) => (
-            <DataCard
-              key={app.id}
-              app={app}
-              isPriority={app.status === "interview"}
-            />
-          ))}
+        <div className="pt-2">
+          <div className="hidden grid-cols-[minmax(0,2.1fr)_minmax(9rem,0.85fr)_minmax(10rem,0.95fr)_minmax(8.5rem,0.8fr)_minmax(7rem,0.6fr)] gap-4 px-5 pb-3 text-[11px] uppercase tracking-[0.18em] text-[color:var(--text-muted)] sm:grid">
+            <span>Application</span>
+            <span>Next action</span>
+            <span>Timeline</span>
+            <span>Case code</span>
+            <span className="text-right">Listing</span>
+          </div>
+          <div>
+            {sorted.map((app) => (
+              <LedgerRow
+                key={app.id}
+                app={app}
+                isPriority={app.status === "interview"}
+              />
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -158,10 +186,10 @@ export default function ApplicationList({ applications }) {
 
   return (
     <section>
-      <DataSurface 
-        applications={applications} 
-        sortBy={sortBy} 
-        setSortBy={setSortBy} 
+      <DataSurface
+        applications={applications}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
       />
     </section>
   );
