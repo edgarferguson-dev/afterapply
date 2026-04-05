@@ -239,14 +239,20 @@ Output goes to `dist/`.
 
 ### GitHub Pages (`username.github.io/repo-name/`)
 
-This repo’s production build defaults to **`base: /afterapply/`** so assets load correctly for  
-`https://edgarferguson-dev.github.io/afterapply/`.
+Production builds use **`base: /afterapply/`** so JS/CSS resolve under the repo path.
 
-1. In the GitHub repo: **Settings → Pages → Build and deployment → Source**: choose **GitHub Actions**.
-2. Push to **`main`**; the workflow **Deploy to GitHub Pages** (`.github/workflows/pages.yml`) builds and publishes `dist/`.
-3. Open the site at **`https://<user>.github.io/afterapply/`** (trailing slash is fine).
+**One-time setup (important):**
 
-If assets still 404, confirm Pages finished deploying and hard-refresh the browser.
+1. **Settings → Pages** in the GitHub repo.
+2. Under **Build and deployment → Source**, select **Deploy from a branch** (not “GitHub Actions”).
+3. **Branch**: **`gh-pages`**, folder **`/ (root)`**.  
+   - The first workflow run on `main` creates the `gh-pages` branch; refresh the branch dropdown if it is missing, then save again.
+4. After each push to `main`, wait for **Actions → Deploy to GitHub Pages** to finish (green check).
+
+**Open the app at:** `https://edgarferguson-dev.github.io/afterapply/`  
+(That is the website — the repo URL `github.com/.../afterapply` is only the code.)
+
+**If it still looks blank:** hard refresh (Ctrl+Shift+R), try an incognito window, and confirm **Settings → Pages** shows “Your site is live at …” with the `github.io` link.
 
 ### Other hosts (site at domain root)
 
