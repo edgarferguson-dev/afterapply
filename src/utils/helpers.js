@@ -1,37 +1,32 @@
 export const STATUS_CONFIG = {
   waiting: {
     label: "Waiting",
-    color: "bg-amber-500/15 text-amber-400 ring-amber-500/25",
-    dot: "bg-amber-400",
+    variant: "waiting",
   },
   followed_up: {
     label: "Followed Up",
-    color: "bg-blue-500/15 text-blue-400 ring-blue-500/25",
-    dot: "bg-blue-400",
+    variant: "followed_up",
   },
   responded: {
     label: "Responded",
-    color: "bg-cyan-500/15 text-cyan-400 ring-cyan-500/25",
-    dot: "bg-cyan-400",
+    variant: "responded",
   },
   interview: {
     label: "Interview",
-    color: "bg-emerald-500/15 text-emerald-400 ring-emerald-500/25",
-    dot: "bg-emerald-400",
+    variant: "interview",
   },
   closed: {
     label: "Closed",
-    color: "bg-zinc-500/15 text-zinc-500 ring-zinc-500/25",
-    dot: "bg-zinc-500",
+    variant: "closed",
   },
 };
 
 export const ACTIVITY_TYPE_CONFIG = {
-  milestone: { color: "text-emerald-400", bg: "bg-emerald-500/10" },
-  follow_up: { color: "text-blue-400", bg: "bg-blue-500/10" },
-  response: { color: "text-cyan-400", bg: "bg-cyan-500/10" },
-  signal: { color: "text-violet-400", bg: "bg-violet-500/10" },
-  applied: { color: "text-zinc-400", bg: "bg-zinc-500/10" },
+  milestone: { color: "text-emerald-400", bg: "bg-emerald-500/10", accent: "#34d399" },
+  follow_up: { color: "text-blue-400", bg: "bg-blue-500/10", accent: "#60a5fa" },
+  response: { color: "text-cyan-400", bg: "bg-cyan-500/10", accent: "#06b6d4" },
+  signal: { color: "text-violet-400", bg: "bg-violet-500/10", accent: "#8b5cf6" },
+  applied: { color: "text-zinc-400", bg: "bg-zinc-500/10", accent: "#9ca3af" },
 };
 
 // ── Date helpers ──────────────────────────────────────────────

@@ -3,96 +3,112 @@ import {
   Send,
   Zap,
   Target,
-  ArrowRight,
+  Activity,
+  ChevronRight,
 } from "lucide-react";
 import { relativeDay, ACTIVITY_TYPE_CONFIG } from "../utils/helpers";
 
-function StatBlock({ icon: Icon, label, value, accent }) {
+function StatusTicker({ event, index }) {
+  const config = ACTIVITY_TYPE_CONFIG[event.type] || ACTIVITY_TYPE_CONFIG.applied;
+  
   return (
-    <div className="flex items-center gap-2.5 rounded-lg bg-surface-100 px-3 py-2 ring-1 ring-surface-subtle">
-      <Icon className={`h-3.5 w-3.5 ${accent}`} strokeWidth={2} />
-      <div className="flex items-baseline gap-1.5">
-        <span className="text-sm font-bold tabular-nums text-primary">
-          {value}
+    <div className="surface-glass px-4 py-2.5 flex items-center gap-3 shrink-0 transition-premium group">
+      {/* Event indicator */}
+      <div className="relative">
+        <div className={`h-2 w-2 rounded-full`} style={{ backgroundColor: config.accent }} />
+        <div className={`absolute inset-0 h-2 w-2 rounded-full blur-sm`} style={{ backgroundColor: config.accent, opacity: 0.5 }} />
+      </div>
+      
+      {/* Event content */}
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="text-sm font-medium text-primary truncate">
+          {event.company}
         </span>
-        <span className="text-[10px] font-medium uppercase tracking-wider text-tertiary">
-          {label}
+        <ChevronRight className="h-3 w-3 text-tertiary flex-shrink-0" />
+        <span className="text-sm text-secondary">
+          {event.action}
         </span>
       </div>
+      
+      {/* Timestamp */}
+      <div className="flex items-center gap-1 text-tertiary">
+        <Activity className="h-3 w-3" strokeWidth={2} />
+        <span className="text-xs font-mono">
+          {relativeDay(event.timestamp)}
+        </span>
+      </div>
+      
+      {/* Hover effect */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
     </div>
   );
 }
 
-function ActivityEvent({ event }) {
-  const config = ACTIVITY_TYPE_CONFIG[event.type] || ACTIVITY_TYPE_CONFIG.applied;
-
+function MetricDisplay({ icon: Icon, label, value, accent, trend }) {
   return (
-    <div className="flex items-center gap-2.5 shrink-0 rounded-lg bg-surface-50 px-3 py-2 ring-1 ring-surface-subtle">
-      <div className={`h-1.5 w-1.5 rounded-full shrink-0 ${config.color.replace("text-", "bg-")}`} />
-      <span className="text-xs text-secondary whitespace-nowrap">
-        <span className="font-medium text-primary">{event.company}</span>
-        <span className="mx-1.5 text-tertiary">·</span>
-        {event.action}
-      </span>
-      <span className="text-[10px] font-mono text-tertiary whitespace-nowrap">
-        {relativeDay(event.timestamp)}
-      </span>
+    <div className="instrument-panel px-4 py-3 flex items-center gap-3 transition-premium group">
+      {/* Icon with glow */}
+      <div className="relative">
+        <Icon className="h-4 w-4" style={{ color: accent }} strokeWidth={2} />
+        <div className="absolute inset-0 h-4 w-4 blur-md opacity-50" style={{ color: accent }} />
+      </div>
+      
+      {/* Value */}
+      <div className="flex items-baseline gap-2">
+        <span className="text-display text-primary">{value}</span>
+        <span className="text-xs font-medium uppercase tracking-wider text-tertiary">
+          {label}
+        </span>
+      </div>
+      
+      {/* Trend indicator */}
+      {trend && (
+        <div className="ml-auto">
+          <TrendingUp className="h-3 w-3 text-emerald-400" strokeWidth={2} />
+        </div>
+      )}
     </div>
   );
 }
 
 export default function ActivityStrip({ stats, activityLog }) {
   return (
-    <div className="rounded-xl border border-surface-subtle bg-surface-50 p-3.5">
-      <div className="flex flex-col gap-3.5 lg:flex-row lg:items-center lg:justify-between">
-        {/* Quick stats */}
-        <div className="flex flex-wrap items-center gap-2">
-          <StatBlock
-            icon={Target}
-            label="Active"
-            value={stats.activePipeline}
-            accent="text-emerald-400"
-          />
-          <StatBlock
-            icon={Send}
-            label="This week"
-            value={stats.appliedThisWeek}
-            accent="text-blue-400"
-          />
-          <StatBlock
-            icon={TrendingUp}
-            label="Response"
-            value={`${stats.responseRate}%`}
-            accent="text-cyan-400"
-          />
-          <StatBlock
-            icon={Zap}
-            label={stats.interviewCount === 1 ? "Interview" : "Interviews"}
-            value={stats.interviewCount}
-            accent="text-violet-400"
-          />
-        </div>
-
-        {/* Divider on large screens */}
-        <div className="hidden lg:block h-8 w-px bg-zinc-800/60" />
-
-        {/* Activity feed */}
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none -mx-1 px-1">
-          <div className="flex items-center gap-1 shrink-0 mr-1">
-            <ArrowRight className="h-3 w-3 text-zinc-600" />
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600 whitespace-nowrap">
-              Recent
-            </span>
+    <div className="control-deck p-5 mb-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          {/* Metrics dashboard */}
+          <div className="flex flex-wrap items-center gap-3">
+            <MetricDisplay
+              icon={Target}
+              label="Active"
+              value={stats.activePipeline}
+              accent="#34d399"
+              trend={stats.activePipeline > 0}
+            />
+            <MetricDisplay
+              icon={Send}
+              label="Follow-ups"
+              value={stats.followedUp}
+              accent="#60a5fa"
+            />
+            <MetricDisplay
+              icon={Zap}
+              label="Response Rate"
+              value={`${Math.round((stats.responded / stats.total) * 100)}%`}
+              accent="#fbbf24"
+            />
           </div>
-          {activityLog.length === 0 ? (
-            <span className="text-xs text-zinc-600 whitespace-nowrap py-2">
-              No recent activity in sheet
-            </span>
-          ) : (
-            activityLog.slice(0, 4).map((event) => (
-              <ActivityEvent key={event.id} event={event} />
-            ))
-          )}
+          
+          {/* Activity ticker */}
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
+            {activityLog.slice(0, 3).map((event, index) => (
+              <StatusTicker
+                key={`${event.id}-${index}`}
+                event={event}
+                index={index}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>

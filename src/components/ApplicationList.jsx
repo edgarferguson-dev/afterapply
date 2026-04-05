@@ -1,4 +1,4 @@
-import { ExternalLink, ArrowUpDown } from "lucide-react";
+import { ExternalLink, ArrowUpDown, Grid, List, MoreVertical } from "lucide-react";
 import { useState } from "react";
 import StatusPill from "./StatusPill";
 import { formatDate } from "../utils/helpers";
@@ -11,107 +11,70 @@ const STATUS_ORDER = {
   closed: 4,
 };
 
-function ApplicationRow({ app }) {
+function DataCard({ app, isPriority = false }) {
   return (
-    <tr className="border-b border-surface-subtle transition-colors hover:bg-surface-100">
-      <td className="py-3 pl-4 pr-3 sm:pl-5">
-        <div>
-          <div className="font-semibold text-sm text-primary">
+    <div className={`
+      data-surface p-4 transition-all duration-300 group
+      ${isPriority ? 'ring-2 ring-amber-500/30 glow-amber' : ''}
+      hover:scale-[1.02] hover:shadow-xl
+      relative overflow-hidden
+    `}>
+      {/* Priority indicator */}
+      {isPriority && (
+        <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+      )}
+      
+      {/* Header */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="min-w-0 flex-1">
+          <h3 className="text-display text-primary truncate mb-1">
             {app.company}
-          </div>
-          <div className="text-xs text-tertiary mt-0.5 max-w-[220px] truncate">
-            {app.role}
-          </div>
+          </h3>
+          <p className="text-secondary text-sm truncate">{app.role}</p>
         </div>
-      </td>
-      <td className="hidden px-3 py-3 lg:table-cell">
-        <span className="text-xs text-tertiary font-mono">
-          {formatDate(app.dateApplied)}
-        </span>
-      </td>
-      <td className="px-3 py-3">
-        <StatusPill status={app.status} />
-      </td>
-      <td className="hidden px-3 py-3 xl:table-cell">
-        <code className="text-[11px] font-mono text-tertiary bg-surface-100 px-1.5 py-0.5 rounded">
-          {app.caseCode}
-        </code>
-      </td>
-      <td className="hidden px-3 py-3 md:table-cell">
+        <div className="flex items-center gap-2">
+          <StatusPill status={app.status} size="sm" />
+          <button className="surface-100 h-8 w-8 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <MoreVertical className="h-4 w-4 text-tertiary" strokeWidth={1.5} />
+          </button>
+        </div>
+      </div>
+      
+      {/* Metadata grid */}
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <div className="surface-50 rounded-lg p-2">
+          <div className="text-xs text-tertiary uppercase tracking-wider mb-1">Applied</div>
+          <div className="text-sm font-mono text-secondary">{formatDate(app.dateApplied)}</div>
+        </div>
+        <div className="surface-50 rounded-lg p-2">
+          <div className="text-xs text-tertiary uppercase tracking-wider mb-1">Updated</div>
+          <div className="text-sm font-mono text-secondary">{formatDate(app.lastUpdated)}</div>
+        </div>
+      </div>
+      
+      {/* Actions */}
+      <div className="flex items-center justify-between">
+        <div className="surface-100 px-2 py-1 rounded-lg">
+          <code className="text-xs font-mono text-tertiary">{app.caseCode}</code>
+        </div>
         <a
           href={app.jobLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-[11px] text-tertiary hover:text-secondary transition-colors"
-          title={app.jobLink}
+          className="surface-glass px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs text-secondary hover:text-primary transition-colors"
         >
           <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
-          <span className="sr-only">Job listing</span>
+          <span>View Listing</span>
         </a>
-      </td>
-      <td className="hidden px-3 py-3 sm:table-cell">
-        <span className="text-xs text-tertiary font-mono">
-          {formatDate(app.lastUpdated)}
-        </span>
-      </td>
-    </tr>
-  );
-}
-
-function ApplicationCard({ app }) {
-  return (
-    <div className="rounded-xl border border-surface-subtle bg-surface-100 p-3.5 transition-colors hover:bg-surface-200 hover:border-surface">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <h3 className="font-semibold text-sm text-primary truncate">
-            {app.company}
-          </h3>
-          <p className="text-xs text-tertiary mt-0.5 truncate">{app.role}</p>
-        </div>
-        <StatusPill status={app.status} size="xs" />
       </div>
-      <div className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-        <div>
-          <span className="text-tertiary uppercase tracking-wider text-[10px] font-medium">
-            Applied
-          </span>
-          <p className="text-secondary font-mono mt-0.5">
-            {formatDate(app.dateApplied)}
-          </p>
-        </div>
-        <div>
-          <span className="text-tertiary uppercase tracking-wider text-[10px] font-medium">
-            Updated
-          </span>
-          <p className="text-secondary font-mono mt-0.5">
-            {formatDate(app.lastUpdated)}
-          </p>
-        </div>
-        <div>
-          <span className="text-tertiary uppercase tracking-wider text-[10px] font-medium">
-            Case
-          </span>
-          <p className="text-tertiary font-mono mt-0.5">{app.caseCode}</p>
-        </div>
-        <div className="flex items-end">
-          <a
-            href={app.jobLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-[11px] text-tertiary hover:text-secondary transition-colors"
-          >
-            <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
-            Listing
-          </a>
-        </div>
-      </div>
+      
+      {/* Hover overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
     </div>
   );
 }
 
-export default function ApplicationList({ applications }) {
-  const [sortBy, setSortBy] = useState("lastUpdated");
-
+function DataSurface({ applications, sortBy, setSortBy }) {
   const sorted = [...applications].sort((a, b) => {
     if (sortBy === "lastUpdated") {
       return new Date(b.lastUpdated) - new Date(a.lastUpdated);
@@ -126,24 +89,34 @@ export default function ApplicationList({ applications }) {
   });
 
   return (
-    <section>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-secondary">
-          All Applications
-        </h2>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-mono text-tertiary">
-            {applications.length} total
-          </span>
-          <div className="hidden sm:flex items-center gap-1 ml-2">
-            <ArrowUpDown className="h-3 w-3 text-tertiary" />
+    <div className="data-surface p-6">
+      {/* Surface header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="surface-200 h-8 w-8 rounded-lg flex items-center justify-center">
+            <Grid className="h-4 w-4 text-primary" strokeWidth={2} />
+          </div>
+          <div>
+            <h2 className="text-display text-primary">Application Surface</h2>
+            <p className="text-xs text-tertiary">Interactive data layer</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <div className="surface-100 px-3 py-1.5 rounded-lg">
+            <span className="text-sm font-bold text-primary">{applications.length}</span>
+            <span className="text-xs text-tertiary ml-1">total</span>
+          </div>
+          
+          <div className="surface-glass px-3 py-1.5 rounded-lg flex items-center gap-2">
+            <ArrowUpDown className="h-3 w-3 text-tertiary" strokeWidth={1.5} />
             {["lastUpdated", "dateApplied", "status"].map((key) => (
               <button
                 key={key}
                 onClick={() => setSortBy(key)}
-                className={`text-[10px] px-2 py-0.5 rounded-md font-medium transition-colors ${
+                className={`text-xs px-2 py-1 rounded-md font-medium transition-colors ${
                   sortBy === key
-                    ? "bg-surface-200 text-primary ring-1 ring-surface-subtle"
+                    ? "surface-200 text-primary border border-arch-subtle"
                     : "text-tertiary hover:text-secondary"
                 }`}
               >
@@ -157,56 +130,39 @@ export default function ApplicationList({ applications }) {
           </div>
         </div>
       </div>
+      
+      {/* Data grid */}
+      {sorted.length === 0 ? (
+        <div className="surface-50 border-arch-subtle border-dashed rounded-xl p-12 text-center">
+          <List className="h-12 w-12 text-tertiary mx-auto mb-4" strokeWidth={1.5} />
+          <h3 className="text-display text-primary mb-2">No Applications</h3>
+          <p className="text-secondary">Your application data will appear here once synced.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sorted.map((app) => (
+            <DataCard
+              key={app.id}
+              app={app}
+              isPriority={app.status === "interview"}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
-      {/* Desktop table */}
-      <div className="hidden sm:block overflow-hidden rounded-xl border border-surface bg-surface-50">
-        <table className="min-w-full">
-          <thead>
-            <tr className="border-b border-surface">
-              {[
-                { label: "Company / Role", className: "pl-4 sm:pl-5", show: "" },
-                { label: "Applied", className: "", show: "hidden lg:table-cell" },
-                { label: "Status", className: "", show: "" },
-                { label: "Case", className: "", show: "hidden xl:table-cell" },
-                { label: "Link", className: "", show: "hidden md:table-cell" },
-                { label: "Updated", className: "", show: "hidden sm:table-cell" },
-              ].map((col) => (
-                <th
-                  key={col.label}
-                  className={`${col.show} ${col.className} px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-widest text-tertiary`}
-                >
-                  {col.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={6}
-                  className="px-4 py-12 text-center text-sm text-tertiary"
-                >
-                  No applications to show.
-                </td>
-              </tr>
-            ) : (
-              sorted.map((app) => <ApplicationRow key={app.id} app={app} />)
-            )}
-          </tbody>
-        </table>
-      </div>
+export default function ApplicationList({ applications }) {
+  const [sortBy, setSortBy] = useState("lastUpdated");
 
-      {/* Mobile cards */}
-      <div className="sm:hidden space-y-2">
-        {sorted.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-surface-subtle bg-surface-50 py-10 text-center text-sm text-tertiary">
-            No applications to show.
-          </div>
-        ) : (
-          sorted.map((app) => <ApplicationCard key={app.id} app={app} />)
-        )}
-      </div>
+  return (
+    <section>
+      <DataSurface 
+        applications={applications} 
+        sortBy={sortBy} 
+        setSortBy={setSortBy} 
+      />
     </section>
   );
 }

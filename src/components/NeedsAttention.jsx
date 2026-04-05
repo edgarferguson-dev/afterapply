@@ -8,6 +8,7 @@ import {
   BookOpen,
   CheckCircle2,
   Inbox,
+  Zap,
 } from "lucide-react";
 import StatusPill from "./StatusPill";
 import {
@@ -19,97 +20,127 @@ import {
   relativeDay,
 } from "../utils/helpers";
 
-const ACTION_ICONS = {
-  "Send follow-up": Send,
-  "Waiting on reply": Hourglass,
-  "Archive": Archive,
-  "Interview prep": BookOpen,
-  "Review": CheckCircle2,
+const ACTION_CONFIGS = {
+  "Send follow-up": { 
+    icon: Send, 
+    color: "#f87171", 
+    glow: "glow-rose",
+    urgency: "critical" 
+  },
+  "Waiting on reply": { 
+    icon: Hourglass, 
+    color: "#60a5fa", 
+    glow: "glow-blue",
+    urgency: "normal" 
+  },
+  "Archive": { 
+    icon: Archive, 
+    color: "#9ca3af", 
+    glow: "",
+    urgency: "low" 
+  },
+  "Interview prep": { 
+    icon: BookOpen, 
+    color: "#fbbf24", 
+    glow: "glow-amber",
+    urgency: "high" 
+  },
+  "Review": { 
+    icon: CheckCircle2, 
+    color: "#34d399", 
+    glow: "glow-emerald",
+    urgency: "normal" 
+  },
 };
 
-const ACTION_STYLES = {
-  "Send follow-up": "bg-amber-500/10 text-amber-400 ring-amber-500/20",
-  "Waiting on reply": "bg-blue-500/10 text-blue-400 ring-blue-500/20",
-  "Archive": "bg-zinc-500/10 text-zinc-400 ring-zinc-500/20",
-  "Interview prep": "bg-emerald-500/10 text-emerald-400 ring-emerald-500/20",
-  "Review": "bg-cyan-500/10 text-cyan-400 ring-cyan-500/20",
-};
-
-function AttentionItem({ app, reasonTag, reasonColor, icon: Icon, actionLabel }) {
-  const ActionIcon = ACTION_ICONS[actionLabel] || CheckCircle2;
-  const actionStyle = ACTION_STYLES[actionLabel] || ACTION_STYLES["Review"];
-
+function AlertItem({ app, reasonTag, reasonColor, urgency, actionConfig, priority }) {
+  const ActionIcon = actionConfig.icon;
+  const isCritical = urgency === "critical";
+  const isHigh = urgency === "high";
+  
   return (
-    <div className="group flex items-center gap-3 rounded-xl border border-surface-subtle bg-surface-50 px-4 py-2.5 transition-all duration-150 hover:bg-surface-100 hover:border-surface sm:gap-4">
-      {/* Priority icon */}
-      <div
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-          reasonColor === "rose"
-            ? "bg-rose-500/15 ring-1 ring-rose-500/25"
-            : reasonColor === "amber"
-            ? "bg-amber-500/15 ring-1 ring-amber-500/25"
-            : "bg-cyan-500/15 ring-1 ring-cyan-500/25"
-        }`}
-      >
-        <Icon
-          className={`h-4 w-4 ${
-            reasonColor === "rose"
-              ? "text-rose-400"
-              : reasonColor === "amber"
-              ? "text-amber-400"
-              : "text-cyan-400"
-          }`}
-          strokeWidth={2}
-        />
-      </div>
-
-      {/* Main info */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-semibold text-primary text-sm truncate">
-            {app.company}
-          </span>
-          <StatusPill status={app.status} size="xs" />
+    <div className={`
+      relative overflow-hidden rounded-xl border p-4 transition-all duration-300
+      ${isCritical ? 'alert-console glow-rose' : ''}
+      ${isHigh ? 'surface-200 border-amber-500/30 glow-amber' : ''}
+      ${!isCritical && !isHigh ? 'surface-100 border-arch-subtle' : ''}
+      ${priority === 0 ? 'scale-[1.02] shadow-2xl' : ''}
+      group hover:scale-[1.01] hover:shadow-xl
+    `}>
+      {/* Priority glow effect */}
+      {isCritical && (
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-red-500/10 to-transparent animate-pulse" />
+      )}
+      
+      {/* Alert header */}
+      <div className="flex items-start gap-4 relative z-10">
+        {/* Alert icon with glow */}
+        <div className={`
+          relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg
+          ${isCritical ? 'bg-red-500/20 border border-red-500/40' : ''}
+          ${isHigh ? 'bg-amber-500/20 border border-amber-500/40' : ''}
+          ${!isCritical && !isHigh ? 'bg-blue-500/15 border border-blue-500/30' : ''}
+        `}>
+          <AlertTriangle 
+            className={`h-5 w-5 ${isCritical ? 'text-red-400 animate-pulse' : isHigh ? 'text-amber-400' : 'text-blue-400'}`} 
+            strokeWidth={2}
+          />
+          {isCritical && (
+            <div className="absolute inset-0 h-10 w-10 rounded-full bg-red-400/20 blur-md animate-pulse" />
+          )}
         </div>
-        <p className="truncate text-xs text-tertiary mt-0.5">{app.role}</p>
-      </div>
 
-      {/* Action label */}
-      <div
-        className={`hidden sm:flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset whitespace-nowrap ${actionStyle}`}
-      >
-        <ActionIcon className="h-3 w-3" strokeWidth={2} />
-        {actionLabel}
+        {/* Content */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-display text-primary truncate">
+              {app.company}
+            </span>
+            <StatusPill status={app.status} size="sm" />
+          </div>
+          <p className="text-secondary text-sm mb-3">{app.role}</p>
+          
+          {/* Action and urgency */}
+          <div className="flex items-center justify-between">
+            <div className={`
+              inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium
+              ${isCritical ? 'bg-red-500/20 text-red-300 border border-red-500/30' : ''}
+              ${isHigh ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : ''}
+              ${!isCritical && !isHigh ? 'bg-blue-500/15 text-blue-300 border border-blue-500/25' : ''}
+            `}>
+              <ActionIcon className="h-3 w-3" strokeWidth={2} />
+              {getSuggestedAction(app, isCritical ? "overdue" : isHigh ? "due_today" : "recent")}
+            </div>
+            
+            {/* Urgency timestamp */}
+            <div className={`
+              text-xs font-mono font-bold
+              ${isCritical ? 'text-red-400' : isHigh ? 'text-amber-400' : 'text-blue-400'}
+            `}>
+              {reasonTag}
+            </div>
+          </div>
+        </div>
       </div>
-
-      {/* Reason tag */}
-      <div className="shrink-0 text-right">
-        <span
-          className={`text-[11px] font-semibold font-mono whitespace-nowrap ${
-            reasonColor === "rose"
-              ? "text-rose-400"
-              : reasonColor === "amber"
-              ? "text-amber-400"
-              : "text-cyan-400"
-          }`}
-        >
-          {reasonTag}
-        </span>
-      </div>
+      
+      {/* Hover overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
     </div>
   );
 }
 
-function EmptyState({ icon: Icon, title, description, accent }) {
+function AlertConsoleEmpty() {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-dashed border-surface-subtle bg-surface-50 px-4 py-3">
-      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-100`}>
-        <Icon className={`h-4 w-4 ${accent}`} strokeWidth={1.5} />
+    <div className="surface-100 border-arch-subtle rounded-xl p-6 text-center">
+      <div className="flex justify-center mb-4">
+        <div className="surface-200 h-12 w-12 rounded-xl flex items-center justify-center border-arch">
+          <Inbox className="h-6 w-6 text-emerald-400" strokeWidth={2} />
+        </div>
       </div>
-      <div>
-        <p className="text-sm font-medium text-secondary">{title}</p>
-        <p className="text-xs text-tertiary mt-0.5">{description}</p>
-      </div>
+      <h3 className="text-display text-primary mb-2">All Clear</h3>
+      <p className="text-secondary text-sm">
+        No overdue follow-ups, nothing due today, and no recent updates requiring attention.
+      </p>
     </div>
   );
 }
@@ -122,6 +153,7 @@ export default function NeedsAttention({ applications }) {
   const seen = new Set();
   const items = [];
 
+  // Critical: Overdue items
   overdue.forEach((app) => {
     if (!seen.has(app.id)) {
       seen.add(app.id);
@@ -130,13 +162,14 @@ export default function NeedsAttention({ applications }) {
         app,
         reasonTag: `${days}d overdue`,
         reasonColor: "rose",
-        icon: AlertTriangle,
+        urgency: "critical",
         priority: 0,
-        actionLabel: getSuggestedAction(app, "overdue"),
+        actionConfig: ACTION_CONFIGS["Send follow-up"],
       });
     }
   });
 
+  // High: Due today
   dueToday.forEach((app) => {
     if (!seen.has(app.id)) {
       seen.add(app.id);
@@ -144,73 +177,70 @@ export default function NeedsAttention({ applications }) {
         app,
         reasonTag: "Due today",
         reasonColor: "amber",
-        icon: Clock,
+        urgency: "high",
         priority: 1,
-        actionLabel: getSuggestedAction(app, "due_today"),
+        actionConfig: ACTION_CONFIGS["Interview prep"],
       });
     }
   });
 
+  // Normal: Recent updates
   recent.forEach((app) => {
     if (!seen.has(app.id)) {
       seen.add(app.id);
       items.push({
         app,
         reasonTag: relativeDay(app.lastUpdated),
-        reasonColor: "cyan",
-        icon: Activity,
+        reasonColor: "blue",
+        urgency: "normal",
         priority: 2,
-        actionLabel: getSuggestedAction(app, "recent"),
+        actionConfig: ACTION_CONFIGS["Review"],
       });
     }
   });
 
-  items.sort((a, b) => a.priority - b.priority);
-
-  const hasOverdue = overdue.length > 0;
-  const hasDueToday = dueToday.length > 0;
-  const hasRecent = recent.length > 0;
-  const hasNothing = !hasOverdue && !hasDueToday && !hasRecent;
+  const hasAlerts = items.length > 0;
+  const hasCritical = overdue.length > 0;
+  const hasHigh = dueToday.length > 0;
 
   return (
-    <section>
-      <div className="flex items-center gap-2 mb-3">
-        {(hasOverdue || hasDueToday) && (
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500" />
-          </span>
+    <section className="mb-6">
+      {/* Alert console header */}
+      <div className="flex items-center gap-3 mb-4">
+        {(hasCritical || hasHigh) && (
+          <div className="relative">
+            <div className={`h-3 w-3 rounded-full ${hasCritical ? 'bg-red-500 animate-pulse' : 'bg-amber-400 animate-pulse'}`} />
+            <div className={`absolute inset-0 h-3 w-3 rounded-full ${hasCritical ? 'bg-red-400 blur-md' : 'bg-amber-300 blur-md'} opacity-60 animate-pulse`} />
+          </div>
         )}
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-secondary">
-          Needs Attention
+        <h2 className="text-display text-primary">
+          Alert Console
         </h2>
-        {items.length > 0 && (
-          <span className="text-[10px] font-mono text-tertiary">
-            {items.length}
-          </span>
+        {hasAlerts && (
+          <div className="surface-100 px-2 py-1 rounded-lg">
+            <span className="text-sm font-bold text-primary">{items.length}</span>
+            <span className="text-xs text-tertiary ml-1">active</span>
+          </div>
         )}
       </div>
 
-      {hasNothing ? (
-        <EmptyState
-          icon={Inbox}
-          title="All clear"
-          description="No overdue follow-ups, nothing due today, and no recent updates."
-          accent="text-emerald-500/60"
-        />
-      ) : (
-        <div className="space-y-1.5">
-          {items.map(({ app, reasonTag, reasonColor, icon, actionLabel }) => (
-            <AttentionItem
+      {/* Alert items */}
+      {hasAlerts ? (
+        <div className="space-y-3">
+          {items.map(({ app, reasonTag, reasonColor, urgency, priority, actionConfig }) => (
+            <AlertItem
               key={app.id}
               app={app}
               reasonTag={reasonTag}
               reasonColor={reasonColor}
-              icon={icon}
-              actionLabel={actionLabel}
+              urgency={urgency}
+              actionConfig={actionConfig}
+              priority={priority}
             />
           ))}
         </div>
+      ) : (
+        <AlertConsoleEmpty />
       )}
     </section>
   );
