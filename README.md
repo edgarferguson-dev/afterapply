@@ -235,6 +235,21 @@ The `NeedsAttention` section assigns a contextual action label to each item:
 npm run build
 ```
 
-Output goes to `dist/`. Deploy to Vercel, Netlify, or any static host.
+Output goes to `dist/`.
+
+### GitHub Pages (`username.github.io/repo-name/`)
+
+This repo’s production build defaults to **`base: /afterapply/`** so assets load correctly for  
+`https://edgarferguson-dev.github.io/afterapply/`.
+
+1. In the GitHub repo: **Settings → Pages → Build and deployment → Source**: choose **GitHub Actions**.
+2. Push to **`main`**; the workflow **Deploy to GitHub Pages** (`.github/workflows/pages.yml`) builds and publishes `dist/`.
+3. Open the site at **`https://<user>.github.io/afterapply/`** (trailing slash is fine).
+
+If assets still 404, confirm Pages finished deploying and hard-refresh the browser.
+
+### Other hosts (site at domain root)
+
+Add `.env.production` with `VITE_BASE=/` so the build uses `/` instead of `/afterapply/`.
 
 Set `VITE_AFTERAPPLY_APPS_SCRIPT_URL` in the host’s environment (or build-time env) the same way as locally.
