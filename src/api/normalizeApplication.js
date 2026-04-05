@@ -96,7 +96,7 @@ export function normalizeStatus(value) {
   return "waiting";
 }
 
-/** Google Sheets / Excel serial date → UTC calendar ISO date (date part only). */
+/** Google Sheets / Excel serial date to UTC calendar ISO date (date part only). */
 function serialToIsoDate(serial) {
   const whole = Math.floor(Number(serial));
   if (!Number.isFinite(whole) || whole < 1) return null;
@@ -177,16 +177,19 @@ function strOrEmpty(v) {
  * @param {number} [rowIndex]
  */
 export function normalizeApplication(raw, rowIndex = 0) {
+  const safeRaw = raw && typeof raw === "object" ? raw : {};
   const company = strOrEmpty(
-    pick(raw, ["company", H.company, "Company", "companyName"])
+    pick(safeRaw, ["company", H.company, "Company", "companyName"])
   );
-  const role = strOrEmpty(pick(raw, ["role", H.role, "Role", "title", "Title", "jobTitle"]));
+  const role = strOrEmpty(
+    pick(safeRaw, ["role", H.role, "Role", "title", "Title", "jobTitle"])
+  );
 
   const caseCode = strOrEmpty(
-    pick(raw, ["caseCode", H.caseCode, "case_code", "CaseCode", "Case"])
+    pick(safeRaw, ["caseCode", H.caseCode, "case_code", "CaseCode", "Case"])
   );
 
-  const explicitId = pick(raw, ["id", "ID", "rowId"]);
+  const explicitId = pick(safeRaw, ["id", "ID", "rowId"]);
   const id = strOrEmpty(
     explicitId != null && String(explicitId).trim() !== ""
       ? explicitId
@@ -194,8 +197,8 @@ export function normalizeApplication(raw, rowIndex = 0) {
   );
 
   const dateApplied =
-    parseIsoDate(pick(raw, ["dateApplied", H.dateApplied, "date_applied", "Applied"])) ?? "";
-  const lastUpdatedRaw = pick(raw, [
+    parseIsoDate(pick(safeRaw, ["dateApplied", H.dateApplied, "date_applied", "Applied"])) ?? "";
+  const lastUpdatedRaw = pick(safeRaw, [
     "lastUpdated",
     H.lastUpdated,
     "last_updated",
@@ -203,7 +206,7 @@ export function normalizeApplication(raw, rowIndex = 0) {
   ]);
   const lastUpdated = parseIsoDate(lastUpdatedRaw) ?? dateApplied;
 
-  const nextRaw = pick(raw, [
+  const nextRaw = pick(safeRaw, [
     "nextFollowUpDate",
     H.nextFollowUp,
     "next_follow_up_date",
@@ -213,9 +216,11 @@ export function normalizeApplication(raw, rowIndex = 0) {
   ]);
   const nextFollowUpDate = parseIsoDate(nextRaw);
 
-  const status = normalizeStatus(pick(raw, ["status", H.status, "Status", "Stage"]));
+  const status = normalizeStatus(pick(safeRaw, ["status", H.status, "Status", "Stage"]));
 
-  let jobLink = strOrEmpty(pick(raw, ["jobLink", H.jobLink, "job_link", "URL", "Link", "url"]));
+  let jobLink = strOrEmpty(
+    pick(safeRaw, ["jobLink", H.jobLink, "job_link", "URL", "Link", "url"])
+  );
   if (
     jobLink &&
     jobLink !== "#" &&
@@ -225,12 +230,12 @@ export function normalizeApplication(raw, rowIndex = 0) {
   }
   if (!jobLink) jobLink = "#";
 
-  const notes = strOrEmpty(pick(raw, ["notes", H.notes, "Notes", "comment"]));
+  const notes = strOrEmpty(pick(safeRaw, ["notes", H.notes, "Notes", "comment"]));
 
   return {
     id: id || caseCode || `${company}-${role}-${rowIndex}`,
-    company: company || "—",
-    role: role || "—",
+    company: company || "-",
+    role: role || "-",
     dateApplied,
     status,
     caseCode: caseCode || id,
@@ -247,19 +252,21 @@ const ACTIVITY_TYPES = new Set(["milestone", "follow_up", "response", "signal", 
  * @param {Record<string, unknown>} raw
  */
 export function normalizeActivityEvent(raw) {
+  const safeRaw = raw && typeof raw === "object" ? raw : {};
   const id =
-    strOrEmpty(pick(raw, ["id", AH.id, "ID"])) ||
+    strOrEmpty(pick(safeRaw, ["id", AH.id, "ID"])) ||
     `ev-${Math.random().toString(36).slice(2, 9)}`;
   const timestamp =
     parseIsoDate(
-      pick(raw, ["timestamp", AH.timestamp, "date", "time", "Date"])
+      pick(safeRaw, ["timestamp", AH.timestamp, "date", "time", "Date"])
     ) ?? "";
   const action = strOrEmpty(
-    pick(raw, ["action", AH.action, "description", "Description"])
+    pick(safeRaw, ["action", AH.action, "description", "Description"])
   );
-  const company = strOrEmpty(pick(raw, ["company", AH.company, "Company"]));
+  const company = strOrEmpty(pick(safeRaw, ["company", AH.company, "Company"]));
   let type =
-    strOrEmpty(pick(raw, ["type", AH.type, "Type"])).toLowerCase() || "applied";
+    strOrEmpty(pick(safeRaw, ["type", AH.type, "Type"])).toLowerCase() || "applied";
   if (!ACTIVITY_TYPES.has(type)) type = "applied";
   return { id, timestamp, action, company, type };
 }
+

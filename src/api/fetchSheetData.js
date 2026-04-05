@@ -35,18 +35,32 @@ export async function fetchSheetData(url, signal) {
     throw new Error("Sheet response was not valid JSON");
   }
 
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new Error("Sheet response must be a JSON object");
+  }
+
   if (data && data.ok === false && data.error) {
     throw new Error(String(data.error));
   }
 
-  const rows = Array.isArray(data?.applications) ? data.applications : [];
-  const applications = rows.map((row, i) => normalizeApplication(row, i));
+  const rows = Array.isArray(data.applications) ? data.applications : [];
+  const applications = rows.map((row, i) => {
+    if (!row || typeof row !== "object" || Array.isArray(row)) {
+      throw new Error(`Application row ${i + 1} was not an object`);
+    }
+    return normalizeApplication(row, i);
+  });
 
-  const logRows = Array.isArray(data?.activityLog) ? data.activityLog : undefined;
-  const activityLog = logRows?.map((row) => normalizeActivityEvent(row));
+  const logRows = Array.isArray(data.activityLog) ? data.activityLog : [];
+  const activityLog = logRows.map((row, i) => {
+    if (!row || typeof row !== "object" || Array.isArray(row)) {
+      throw new Error(`Activity row ${i + 1} was not an object`);
+    }
+    return normalizeActivityEvent(row);
+  });
 
   const generatedAt =
-    typeof data?.generatedAt === "string" && data.generatedAt.trim()
+    typeof data.generatedAt === "string" && data.generatedAt.trim()
       ? data.generatedAt.trim()
       : null;
 

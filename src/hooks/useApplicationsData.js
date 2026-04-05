@@ -49,7 +49,7 @@ export function useApplicationsData() {
         await fetchSheetData(appsScriptUrl, ac.signal);
 
       setApplications(next);
-      setActivityLog(nextLog && nextLog.length > 0 ? nextLog : []);
+      setActivityLog(Array.isArray(nextLog) ? nextLog : []);
       setDataSource("live");
       setLastSyncedAt(generatedAt ? new Date(generatedAt) : new Date());
     } catch (e) {

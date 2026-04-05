@@ -1,19 +1,22 @@
 /**
- * AfterApply — Google Apps Script web app
+ * AfterApply Google Apps Script web app
  *
- * Deploy: Deploy → New deployment → Type "Web app"
- * - Execute as: Me
- * - Who has access: Anyone (required for browser fetch from your Vite app)
+ * Deploy:
+ * 1. Extensions -> Apps Script
+ * 2. Paste this file into the script editor
+ * 3. Set SPREADSHEET_ID if the script is not bound to the target sheet
+ * 4. Deploy -> New deployment -> Web app
+ * 5. Execute as: Me
+ * 6. Who has access: Anyone
  *
- * The Applications tab MUST use row 1 headers exactly as APPLICATION_HEADERS below.
- * Copy/paste that row into your sheet — spelling and spacing must match.
+ * The Applications sheet must use the exact headers defined below.
+ * The Activity sheet is optional.
  */
 
-var SPREADSHEET_ID = "YOUR_SPREADSHEET_ID_HERE";
+var SPREADSHEET_ID = "";
 var APPLICATIONS_SHEET_NAME = "Applications";
 var ACTIVITY_SHEET_NAME = "Activity";
 
-/** Exact column titles for row 1 of the Applications sheet (trimmed when read). */
 var APPLICATION_HEADERS = {
   CASE_CODE: "Case Code",
   COMPANY: "Company",
@@ -26,7 +29,6 @@ var APPLICATION_HEADERS = {
   NOTES: "Notes",
 };
 
-/** Exact column titles for row 1 of the Activity sheet (optional tab). */
 var ACTIVITY_HEADERS = {
   ID: "ID",
   TIMESTAMP: "Timestamp",
@@ -37,50 +39,90 @@ var ACTIVITY_HEADERS = {
 
 function doGet() {
   try {
-    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    var sheet = ss.getSheetByName(APPLICATIONS_SHEET_NAME);
-    if (!sheet) {
-      return jsonOut({ ok: false, error: "Sheet not found: " + APPLICATIONS_SHEET_NAME });
+    var ss = getSpreadsheet_();
+    var applicationsSheet = ss.getSheetByName(APPLICATIONS_SHEET_NAME);
+    if (!applicationsSheet) {
+      throw new Error("Sheet not found: " + APPLICATIONS_SHEET_NAME);
     }
 
-    var values = sheet.getDataRange().getValues();
-    if (!values.length) {
-      return jsonOut({
-        ok: true,
-        generatedAt: new Date().toISOString(),
-        applications: [],
-        activityLog: [],
-      });
-    }
-
-    var headers = values[0].map(function (h) {
-      return String(h).trim();
-    });
-    validateApplicationHeaders_(headers);
-
-    var applications = [];
-    for (var r = 1; r < values.length; r++) {
-      var row = values[r];
-      if (rowJoin_(row) === "") continue;
-      var rowMap = rowToMap_(headers, row);
-      applications.push(rowToApplication(rowMap, r));
-    }
-
+    var applications = readApplications_(applicationsSheet);
     var activityLog = readActivityLog_(ss);
 
-    return jsonOut({
+    return jsonOut_({
       ok: true,
       generatedAt: new Date().toISOString(),
       applications: applications,
       activityLog: activityLog,
     });
   } catch (err) {
-    return jsonOut({ ok: false, error: String(err && err.message ? err.message : err) });
+    return jsonOut_({
+      ok: false,
+      error: String(err && err.message ? err.message : err),
+    });
   }
 }
 
-function validateApplicationHeaders_(headers) {
-  var required = [
+function getSpreadsheet_() {
+  if (SPREADSHEET_ID && String(SPREADSHEET_ID).trim() !== "") {
+    return SpreadsheetApp.openById(String(SPREADSHEET_ID).trim());
+  }
+
+  var active = SpreadsheetApp.getActiveSpreadsheet();
+  if (!active) {
+    throw new Error("No active spreadsheet found. Set SPREADSHEET_ID before deploying.");
+  }
+  return active;
+}
+
+function readApplications_(sheet) {
+  var values = sheet.getDataRange().getValues();
+  if (!values.length) return [];
+
+  var headers = normalizeHeaders_(values[0]);
+  validateHeaders_(headers, getRequiredApplicationHeaders_(), "Applications");
+
+  var applications = [];
+  for (var r = 1; r < values.length; r++) {
+    var row = values[r];
+    if (isBlankRow_(row)) continue;
+    var rowMap = rowToMap_(headers, row);
+    applications.push(rowToApplication_(rowMap, r));
+  }
+  return applications;
+}
+
+function readActivityLog_(ss) {
+  var sheet = ss.getSheetByName(ACTIVITY_SHEET_NAME);
+  if (!sheet) return [];
+
+  var values = sheet.getDataRange().getValues();
+  if (!values.length) return [];
+
+  var headers = normalizeHeaders_(values[0]);
+  var required = getRequiredActivityHeaders_();
+  if (!hasAllHeaders_(headers, required)) {
+    return [];
+  }
+
+  var events = [];
+  for (var r = 1; r < values.length; r++) {
+    var row = values[r];
+    if (isBlankRow_(row)) continue;
+    var rowMap = rowToMap_(headers, row);
+    events.push({
+      id: cellStr_(rowMap, ACTIVITY_HEADERS.ID) || "ev-" + r,
+      timestamp: formatDate_(rowMap[ACTIVITY_HEADERS.TIMESTAMP]),
+      action: cellStr_(rowMap, ACTIVITY_HEADERS.ACTION),
+      company: cellStr_(rowMap, ACTIVITY_HEADERS.COMPANY),
+      type: normalizeActivityType_(cellStr_(rowMap, ACTIVITY_HEADERS.TYPE)),
+    });
+  }
+
+  return events;
+}
+
+function getRequiredApplicationHeaders_() {
+  return [
     APPLICATION_HEADERS.CASE_CODE,
     APPLICATION_HEADERS.COMPANY,
     APPLICATION_HEADERS.ROLE,
@@ -91,36 +133,64 @@ function validateApplicationHeaders_(headers) {
     APPLICATION_HEADERS.NEXT_FOLLOW_UP,
     APPLICATION_HEADERS.NOTES,
   ];
+}
+
+function getRequiredActivityHeaders_() {
+  return [
+    ACTIVITY_HEADERS.ID,
+    ACTIVITY_HEADERS.TIMESTAMP,
+    ACTIVITY_HEADERS.ACTION,
+    ACTIVITY_HEADERS.COMPANY,
+    ACTIVITY_HEADERS.TYPE,
+  ];
+}
+
+function normalizeHeaders_(row) {
+  return row.map(function (header) {
+    return String(header || "").trim();
+  });
+}
+
+function validateHeaders_(headers, requiredHeaders, sheetName) {
   var missing = [];
-  for (var i = 0; i < required.length; i++) {
-    if (headers.indexOf(required[i]) === -1) missing.push(required[i]);
+  for (var i = 0; i < requiredHeaders.length; i++) {
+    if (headers.indexOf(requiredHeaders[i]) === -1) {
+      missing.push(requiredHeaders[i]);
+    }
   }
+
   if (missing.length) {
-    throw new Error("Missing required column(s): " + missing.join(", "));
+    throw new Error(
+      sheetName + " is missing required column(s): " + missing.join(", ")
+    );
   }
 }
 
-function rowJoin_(row) {
-  return row
-    .map(function (c) {
-      return String(c).trim();
-    })
-    .join("");
+function hasAllHeaders_(headers, requiredHeaders) {
+  for (var i = 0; i < requiredHeaders.length; i++) {
+    if (headers.indexOf(requiredHeaders[i]) === -1) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function isBlankRow_(row) {
+  for (var i = 0; i < row.length; i++) {
+    if (String(row[i] || "").trim() !== "") return false;
+  }
+  return true;
 }
 
 function rowToMap_(headers, row) {
-  var o = {};
+  var out = {};
   for (var i = 0; i < headers.length; i++) {
-    o[headers[i]] = row[i];
+    out[headers[i]] = row[i];
   }
-  return o;
+  return out;
 }
 
-/**
- * Reads one data row using ONLY the canonical header names.
- * Outputs camelCase keys matching the AfterApply frontend contract.
- */
-function rowToApplication(rowMap, rowIndex) {
+function rowToApplication_(rowMap, rowIndex) {
   var caseCode = cellStr_(rowMap, APPLICATION_HEADERS.CASE_CODE);
   var id = caseCode || "row-" + rowIndex;
 
@@ -139,61 +209,64 @@ function rowToApplication(rowMap, rowIndex) {
 }
 
 function cellStr_(rowMap, header) {
-  var v = rowMap[header];
-  if (v === undefined || v === null) return "";
-  return String(v).trim();
+  var value = rowMap[header];
+  if (value === undefined || value === null) return "";
+  return String(value).trim();
 }
 
-/**
- * Normalizes Sheet values to yyyy-MM-dd for JSON.
- * Handles Date objects, serial numbers, and string literals.
- */
-function formatDate_(v) {
-  if (v === "" || v === null || v === undefined) return "";
-  if (Object.prototype.toString.call(v) === "[object Date]" && !isNaN(v)) {
-    return Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd");
+function normalizeActivityType_(value) {
+  var allowed = {
+    milestone: true,
+    follow_up: true,
+    response: true,
+    signal: true,
+    applied: true,
+  };
+
+  var normalized = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s/]+/g, "_")
+    .replace(/-+/g, "_");
+
+  return allowed[normalized] ? normalized : "applied";
+}
+
+function formatDate_(value) {
+  if (value === "" || value === null || value === undefined) return "";
+
+  if (Object.prototype.toString.call(value) === "[object Date]" && !isNaN(value)) {
+    return Utilities.formatDate(value, Session.getScriptTimeZone(), "yyyy-MM-dd");
   }
-  if (typeof v === "number" && !isNaN(v)) {
-    var whole = Math.floor(v);
-    if (whole >= 1 && whole < 1000000) {
-      var epochMs = (whole - 25569) * 86400 * 1000;
-      var d = new Date(epochMs);
-      if (!isNaN(d.getTime())) {
-        return Utilities.formatDate(d, Session.getScriptTimeZone(), "yyyy-MM-dd");
+
+  if (typeof value === "number" && !isNaN(value)) {
+    var serial = Math.floor(value);
+    if (serial >= 1 && serial < 1000000) {
+      var epochMs = (serial - 25569) * 86400 * 1000;
+      var fromSerial = new Date(epochMs);
+      if (!isNaN(fromSerial.getTime())) {
+        return Utilities.formatDate(
+          fromSerial,
+          Session.getScriptTimeZone(),
+          "yyyy-MM-dd"
+        );
       }
     }
   }
-  return String(v).trim();
-}
 
-function readActivityLog_(ss) {
-  var sh = ss.getSheetByName(ACTIVITY_SHEET_NAME);
-  if (!sh) return [];
+  var asString = String(value).trim();
+  if (!asString) return "";
 
-  var values = sh.getDataRange().getValues();
-  if (!values.length) return [];
-
-  var headers = values[0].map(function (h) {
-    return String(h).trim();
-  });
-  var out = [];
-  for (var r = 1; r < values.length; r++) {
-    var row = values[r];
-    if (rowJoin_(row) === "") continue;
-    var o = rowToMap_(headers, row);
-    out.push({
-      id: cellStr_(o, ACTIVITY_HEADERS.ID) || "ev-" + r,
-      timestamp: formatDate_(o[ACTIVITY_HEADERS.TIMESTAMP]),
-      action: cellStr_(o, ACTIVITY_HEADERS.ACTION),
-      company: cellStr_(o, ACTIVITY_HEADERS.COMPANY),
-      type: String(cellStr_(o, ACTIVITY_HEADERS.TYPE) || "applied").toLowerCase(),
-    });
+  var parsed = new Date(asString);
+  if (!isNaN(parsed.getTime())) {
+    return Utilities.formatDate(parsed, Session.getScriptTimeZone(), "yyyy-MM-dd");
   }
-  return out;
+
+  return asString;
 }
 
-function jsonOut(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(
+function jsonOut_(payload) {
+  return ContentService.createTextOutput(JSON.stringify(payload)).setMimeType(
     ContentService.MimeType.JSON
   );
 }

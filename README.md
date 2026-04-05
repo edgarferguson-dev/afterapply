@@ -1,8 +1,8 @@
 # AfterApply
 
-**Follow up before the opportunity goes cold.**
+Follow up before the opportunity goes cold.
 
-A dark, modern command-center dashboard for tracking job applications and follow-ups. Built for job seekers who want a system, not a spreadsheet.
+AfterApply is a job application follow-up dashboard. The UI is intentionally stable now; the core of the product is the follow-up workflow and the live data connection.
 
 ## Quick Start
 
@@ -13,246 +13,159 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-### Live Google Sheet (optional)
+## Current Data Modes
 
-1. Copy `.env.example` to `.env`
-2. Set `VITE_AFTERAPPLY_APPS_SCRIPT_URL` to your deployed Apps Script **web app** URL (ends in `/exec`)
-3. Restart `npm run dev` so Vite picks up the env var
+The dashboard supports three modes without changing the UI:
 
-If the variable is unset, the app uses **demo data** (sync bar: **Demo data**). If the URL is set and the sheet loads, you see **Live data** plus *Last synced …*. If the URL is set but the request fails, the app **falls back to demo data** and the sync bar shows **Live data unavailable — showing demo data** plus the error detail.
+- Demo mode: no Apps Script URL is configured, so built-in mock data is shown.
+- Live mode: a Google Apps Script web app URL is configured and returns valid JSON.
+- Fallback mode: a live URL is configured, but the request fails, so the app falls back to demo data and shows the error in the sync bar.
 
-## Stack
-
-- **Vite 8** — fast dev server and build tool
-- **React 19** — UI framework
-- **Tailwind CSS v4** — utility-first styling (via `@tailwindcss/vite`)
-- **Lucide React** — icon system
-- **Inter + JetBrains Mono** — typography (loaded from Google Fonts)
-
-## Project Structure
-
-```
-src/
-├── main.jsx                         Entry point
-├── App.jsx                          Layout; uses hook for data + loading/error UI
-├── index.css                        Tailwind import, scrollbar styles
-├── config/
-│   └── dataSource.js                Reads VITE_AFTERAPPLY_APPS_SCRIPT_URL
-├── api/
-│   ├── fetchSheetData.js            GET + JSON parse + error mapping
-│   └── normalizeApplication.js      Sheet/API row → dashboard shape (+ aliases)
-├── hooks/
-│   └── useApplicationsData.js       Load / refresh, fallback, last-synced state
-├── data/
-│   ├── applicationSchema.js         Canonical `Application` shape + exact sheet header strings
-│   └── mockData.js                  Demo applications + activity log
-├── components/
-│   ├── Header.jsx
-│   ├── DataSyncStatus.jsx           Demo / live / fallback sync labels + refresh
-│   ├── LiveSheetEmpty.jsx           Banner when live sheet returns zero rows
-│   ├── LoadingApplications.jsx      Blocking loader (first live fetch)
-│   ├── SummaryCards.jsx
-│   ├── ActivityStrip.jsx
-│   ├── NeedsAttention.jsx
-│   ├── ApplicationList.jsx
-│   └── StatusPill.jsx
-└── utils/
-    └── helpers.js                   Status config, filters, pipeline stats
-
-scripts/google-apps-script/
-└── afterapply-api.gs                Sample `doGet` → JSON for the frontend
-```
-
----
-
-## Live data: frontend data flow
-
-1. **`config/dataSource.js`** exposes whether a web app URL is configured (`isLiveDataEnabled`).
-2. **`useApplicationsData`** runs on mount:
-   - **No URL** → use `mockData` immediately (`dataSource: "mock"`).
-   - **URL set** → `fetchSheetData(url)` → normalize rows → `dataSource: "live"` and store `lastSyncedAt` from `generatedAt` (or “now”).
-   - **Fetch or parse error** → replace with `mockData`, `dataSource: "fallback"`, surface `error` message.
-3. **`App.jsx`** keeps the **same presentational components**; only the arrays (`applications`, `activityLog`) and sync metadata change.
-4. **Refresh** calls the same load function again (non-blocking spinner in the sync bar).
-
----
-
-## 1. Google Sheet column names (Applications tab, row 1)
-
-These headers must appear **exactly** (spelling and spaces). They are defined in code as `APPLICATION_SHEET_HEADERS` in `src/data/applicationSchema.js` and enforced in `scripts/google-apps-script/afterapply-api.gs`.
-
-| Column title     | Meaning |
-|------------------|---------|
-| `Case Code`      | Unique id for the row (also used as `id` in JSON if you do not send a separate id) |
-| `Company`        | Employer name |
-| `Role`           | Job title |
-| `Date Applied`   | Applied date |
-| `Status`         | Pipeline label (see normalization below) |
-| `Job Link`       | Listing URL (optional scheme: `https://` added on the client if missing) |
-| `Last Updated`   | Last touch / update |
-| `Next Follow Up` | Follow-up due date (empty = none) |
-| `Notes`          | Free text |
-
-Optional **`Activity`** tab (row 1): `ID`, `Timestamp`, `Action`, `Company`, `Type` — see `ACTIVITY_SHEET_HEADERS` in `applicationSchema.js`.
-
----
-
-## 2. Apps Script mapping strategy
-
-- **`rowToMap_`** builds an object keyed by **exact** header strings from row 1.
-- **`rowToApplication`** reads **only** those canonical headers (no alternate spellings) and returns **camelCase** JSON keys: `id`, `company`, `role`, `dateApplied`, `status`, `caseCode`, `jobLink`, `lastUpdated`, `nextFollowUpDate`, `notes`.
-- **`validateApplicationHeaders_`** runs on each request: if any required header is missing, the script returns `{ ok: false, error: "Missing required column(s): …" }` and the UI falls back to demo data.
-- **Dates in GAS**: `formatDate_` turns `Date` cells, **serial numbers**, or date strings into `yyyy-MM-dd` in the **script timezone** (`Session.getScriptTimeZone()`).
-
----
-
-## 3. Frontend normalization rules (`src/api/normalizeApplication.js`)
-
-- **Canonical shape**: every row is merged into the `Application` typedef in `applicationSchema.js` before it hits React.
-- **Status** (`normalizeStatus`): input is trimmed, lowercased, spaces/slashes collapsed to `_`, hyphens normalized. If the value is already one of `waiting` \| `followed_up` \| `responded` \| `interview` \| `closed`, it is kept. Otherwise a fixed **alias map** maps common sheet labels (e.g. `pending`, `applied`, `follow-up`, `rejected`) to a canonical status. Anything unknown becomes **`waiting`** (predictable UI).
-- **Dates** (`parseIsoDate`): supports **ISO / partial ISO** (`YYYY-MM-DD` prefix), **JavaScript-parsable strings** (locale-dependent), **US `M/D/YYYY`**, **Google Sheets / Excel serial numbers** (numbers that look like serials, not years `1900–2100`). Invalid values become `null` / empty strings as appropriate; `nextFollowUpDate` is **`null`** when absent.
-- **Resilience**: the client still accepts legacy keys (`Company`, `date_applied`, etc.) so older deployments or hand-built JSON do not brick the dashboard.
-- **Display helpers** (`formatDate`, `relativeDay`, `daysFromNow`) treat invalid dates as **—** / safe defaults so bad cells do not throw.
-
----
-
-## 4. Edge cases that break or weaken the live connection
-
-| Issue | Effect |
-|--------|--------|
-| Missing or misspelled header in row 1 | Script throws → `ok: false` → UI shows **Live data unavailable — showing demo data** |
-| Web app not redeployed after changing the sheet or script | Browser may hit an old deployment URL or cached code |
-| Wrong **Execute as** / **Who has access** | CORS or 403; fetch fails → fallback |
-| HTML login page instead of JSON (wrong URL, auth wall) | JSON parse error → fallback |
-| **Activity** tab renamed or columns wrong | Activity feed may be empty strings; applications still work |
-| Plain **year** stored as a number (e.g. `2026`) in a date cell | Not treated as a serial → date may fail to parse → empty date in UI |
-| **Ambiguous** non-US date strings | Parsed via `Date` (browser locale); prefer ISO `YYYY-MM-DD` in the sheet |
-| **Duplicate `Case Code`** values | Rows still render; attention logic and ids may be confusing — keep codes unique |
-| Empty sheet (headers only) | Valid `ok: true` with `applications: []` → **Live data** + empty-state banner and zeroed metrics |
-
----
-
-## Exact JSON shape expected from the endpoint
-
-The fetch layer expects **JSON** (not JSONP). Top-level object:
+The expected JSON shape is:
 
 ```json
 {
   "ok": true,
   "generatedAt": "2026-04-05T18:30:00.000Z",
-  "applications": [ /* see below */ ],
-  "activityLog": [ /* optional; omit or [] if none */ ]
+  "applications": [],
+  "activityLog": []
 }
 ```
 
-On failure, the script may return:
+## Canonical Frontend Shape
 
-```json
-{ "ok": false, "error": "Human-readable message" }
-```
+Every application row is normalized into this shape before rendering:
 
-Each **application** (after normalization) matches:
-
-| Field | Type | Notes |
-|--------|------|--------|
-| `id` | string | Stable row id; falls back to `caseCode` or `row-{index}` |
-| `company` | string | |
-| `role` | string | |
-| `dateApplied` | string | `YYYY-MM-DD` preferred; ISO or Sheets date serial accepted |
-| `status` | string | `waiting` \| `followed_up` \| `responded` \| `interview` \| `closed` |
-| `caseCode` | string | |
-| `jobLink` | string | URL or `#` |
-| `lastUpdated` | string | `YYYY-MM-DD` |
-| `nextFollowUpDate` | string \| null | Empty → `null` |
-| `notes` | string | Optional |
-
-Each **activity** entry (optional):
-
-```json
+```js
 {
-  "id": "ev-1",
-  "timestamp": "2026-04-05",
-  "action": "Recruiter replied",
-  "company": "Acme Corp",
-  "type": "response"
+  id,
+  company,
+  role,
+  dateApplied,
+  status,
+  caseCode,
+  jobLink,
+  lastUpdated,
+  nextFollowUpDate,
+  notes,
 }
 ```
 
-`type` should be one of: `milestone`, `follow_up`, `response`, `signal`, `applied` (invalid values become `applied`).
+Canonical statuses are strictly normalized to:
 
-The **`normalizeApplication.js`** layer still accepts common **legacy** keys (e.g. `date_applied`, alternate header spellings) so hand-edited JSON or older scripts stay compatible; the **recommended** path is camelCase JSON from the locked Apps Script mapping above.
+- `waiting`
+- `followed_up`
+- `responded`
+- `interview`
+- `closed`
 
----
+## Files That Power Live Data
 
-## Fetch logic (clean separation)
+- [src/config/dataSource.js](C:/Users/ewf83/OneDrive/Desktop/afterapply/src/config/dataSource.js): reads `VITE_AFTERAPPLY_APPS_SCRIPT_URL`
+- [src/hooks/useApplicationsData.js](C:/Users/ewf83/OneDrive/Desktop/afterapply/src/hooks/useApplicationsData.js): loading, refresh, live/mock/fallback mode switching
+- [src/api/fetchSheetData.js](C:/Users/ewf83/OneDrive/Desktop/afterapply/src/api/fetchSheetData.js): fetches JSON and validates payload shape
+- [src/api/normalizeApplication.js](C:/Users/ewf83/OneDrive/Desktop/afterapply/src/api/normalizeApplication.js): normalizes statuses, dates, links, and activity rows
+- [src/data/applicationSchema.js](C:/Users/ewf83/OneDrive/Desktop/afterapply/src/data/applicationSchema.js): locked sheet headers and canonical frontend shape
+- [scripts/google-apps-script/afterapply-api.gs](C:/Users/ewf83/OneDrive/Desktop/afterapply/scripts/google-apps-script/afterapply-api.gs): Apps Script web app that exposes Google Sheets data as JSON
 
-| Concern | File |
-|--------|------|
-| Env / whether live mode is on | `src/config/dataSource.js` |
-| HTTP + JSON + `ok: false` handling | `src/api/fetchSheetData.js` |
-| Row → dashboard shape, dates, status | `src/api/normalizeApplication.js` |
-| Loading, error, fallback, refresh, last sync | `src/hooks/useApplicationsData.js` |
-| UI wiring only | `src/App.jsx` |
+## Locked Google Sheet Headers
 
----
+Applications sheet, row 1 must be exactly:
 
-## Preserving the UI while swapping data sources
+- `Case Code`
+- `Company`
+- `Role`
+- `Date Applied`
+- `Status`
+- `Job Link`
+- `Last Updated`
+- `Next Follow Up`
+- `Notes`
 
-- **No changes** to `SummaryCards`, `NeedsAttention`, `ApplicationList`, `StatusPill`, or `Header` layout beyond what they already accept as props.
-- **`App.jsx`** still passes `applications` and `activityLog` into the same tree.
-- **Additions**: `DataSyncStatus` (sync-state labels), `LoadingApplications` (first live fetch), `LiveSheetEmpty` (live + zero rows), and empty copy in `ActivityStrip` when there is no activity data.
+Optional Activity sheet, row 1:
 
----
+- `ID`
+- `Timestamp`
+- `Action`
+- `Company`
+- `Type`
 
-## Google Apps Script deployment
+## Manual Setup: Google Sheet
 
-Use **`ContentService`** with MIME type **`JSON`** in `doGet`, and deploy as a **Web app** with **Who has access: Anyone** so the browser can call it with `fetch` (CORS).
+1. Create a Google Sheet.
+2. Name the main tab `Applications`.
+3. Put the locked `Applications` headers in row 1 exactly as listed above.
+4. Add application rows beneath the header.
+5. If you want the recent movement strip to use real events, add a second tab named `Activity`.
+6. Put the locked `Activity` headers in row 1 exactly as listed above.
 
-**`scripts/google-apps-script/afterapply-api.gs`** validates required **Applications** headers, maps each row to camelCase JSON, and optionally reads **`Activity`**. Point `VITE_AFTERAPPLY_APPS_SCRIPT_URL` at the deployment URL that ends in **`/exec`**.
+## Manual Setup: Apps Script
 
----
+1. Open the Google Sheet.
+2. Go to `Extensions -> Apps Script`.
+3. Replace the default script with the contents of [scripts/google-apps-script/afterapply-api.gs](C:/Users/ewf83/OneDrive/Desktop/afterapply/scripts/google-apps-script/afterapply-api.gs).
+4. If the script is bound to the same spreadsheet, leave `SPREADSHEET_ID` blank.
+5. If the script is standalone, set `SPREADSHEET_ID` to the target Google Sheet id.
+6. Save the script.
+7. Click `Deploy -> New deployment`.
+8. Choose `Web app`.
+9. Set `Execute as` to `Me`.
+10. Set `Who has access` to `Anyone`.
+11. Deploy and copy the URL that ends in `/exec`.
 
-## Mock / demo data shape
+## Manual Setup: Local Env
 
-Same as live shape; see `src/data/mockData.js`.
+1. Copy `.env.example` to `.env`.
+2. Set `VITE_AFTERAPPLY_APPS_SCRIPT_URL` to the deployed Apps Script `/exec` URL.
+3. Restart `npm run dev`.
 
-## Suggested Actions
+Example:
 
-The `NeedsAttention` section assigns a contextual action label to each item:
+```env
+VITE_AFTERAPPLY_APPS_SCRIPT_URL=https://script.google.com/macros/s/AKfycb.../exec
+```
 
-| Context                    | Action Label      |
-|----------------------------|-------------------|
-| Overdue follow-up          | Send follow-up    |
-| Due today (waiting)        | Send follow-up    |
-| Followed up, no reply      | Waiting on reply  |
-| Responded, pending action  | Waiting on reply  |
-| Interview stage            | Interview prep    |
-| Closed application         | Archive           |
+## Switching Between Demo And Live
 
-## Build for Production
+- Demo mode: remove `VITE_AFTERAPPLY_APPS_SCRIPT_URL` from `.env` and restart Vite.
+- Live mode: add the Apps Script `/exec` URL to `.env` and restart Vite.
+- Fallback mode: keep the live URL configured but break the endpoint or headers; the app will show demo data plus a sync warning.
+
+## What The Frontend Now Verifies
+
+- The top-level response must be a JSON object.
+- `applications` must be an array of objects.
+- `activityLog`, if present, must be an array of objects.
+- Sheet statuses are normalized into the canonical frontend statuses only.
+- Dates are parsed from ISO strings, US-style date strings, JavaScript-parsable dates, and Google Sheets serials.
+- Invalid or missing dates degrade safely instead of crashing the UI.
+- Missing live rows still render a polished empty-live-sheet state.
+
+## Expected Real-Data Flow
+
+1. Google Form or another intake path writes a row to the `Applications` sheet.
+2. Apps Script exposes the sheet as JSON.
+3. The dashboard fetches the Apps Script endpoint.
+4. Incoming rows are normalized into the canonical frontend shape.
+5. The UI renders live applications, live sync state, and live activity data when present.
+6. If the endpoint fails, the UI falls back to demo data without breaking the dashboard.
+
+## Edge Cases Still Worth Testing
+
+- Missing or misspelled `Applications` headers.
+- Empty live sheet with only headers and no rows.
+- Blank `Next Follow Up` cells.
+- Date cells stored as true date objects versus sheet serials.
+- Status variants like `Follow Up`, `follow-up`, `Responded`, or `Rejected`.
+- Job links without `https://`.
+- Activity tab missing entirely.
+- Activity tab present but with partial or wrong headers.
+- Broken or undeployed Apps Script URL.
+
+## Build
 
 ```bash
 npm run build
 ```
 
-Output goes to `dist/`.
-
-### GitHub Pages (`https://<user>.github.io/afterapply/`)
-
-- **`vite.config.js`** sets **`base: "/afterapply/"`** for **`npm run build`** only (local **`npm run dev`** keeps **`base: "/"`**).
-- **`.github/workflows/pages.yml`** runs **`npm ci`** and **`npm run build`**, then publishes the contents of **`dist/`** to the **`gh-pages`** branch.
-
-**GitHub repo settings (required):**
-
-| Setting | Value |
-|--------|--------|
-| **Settings → Pages → Build and deployment → Source** | **Deploy from a branch** (not “GitHub Actions”) |
-| **Branch** | **`gh-pages`** |
-| **Folder** | **`/ (root)`** |
-| **Settings → Actions → General → Workflow permissions** | **Read and write** (so the workflow can push `gh-pages`) |
-
-After the first successful workflow run, pick **`gh-pages`** in the Pages branch dropdown if it was not listed before.
-
-**Site URL:** `https://edgarferguson-dev.github.io/afterapply/` (not the `github.com/...` code URL).
-
-Set `VITE_AFTERAPPLY_APPS_SCRIPT_URL` in the host’s environment (or build-time env) the same way as locally.
+The app uses `base: "/afterapply/"` for production builds and `base: "/"` in local dev.
