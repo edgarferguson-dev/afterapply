@@ -1,132 +1,292 @@
-﻿import { motion } from "framer-motion";
-import { ArrowUpRight, CheckCheck, CircleAlert, Clock3, Filter, Flag, GraduationCap, HandHelping, Inbox, MessageCircleWarning, Sparkles } from "lucide-react";
+﻿import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import { AlertTriangle, Copy, Plus, QrCode, RefreshCcw, Smartphone } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
-import { Progress } from "../ui/progress";
-import { ScrollArea } from "../ui/scroll-area";
-import { Separator } from "../ui/separator";
-import { Avatar, AvatarFallback } from "../ui/avatar";
-import { formatDate, formatDateTime, formatPhone, titleCase } from "../../lib/utils";
+import { Card, CardContent } from "../ui/card";
+import { formatDateTime } from "../../lib/utils";
 
-function riskVariant(risk) {
-  if (risk === "HIGH") return "coral";
-  if (risk === "MEDIUM") return "gold";
-  return "success";
+function toneClasses(tone) {
+  if (tone === "critical") return "border-rose-200 bg-rose-50 text-rose-700";
+  if (tone === "review") return "border-amber-200 bg-amber-50 text-amber-700";
+  if (tone === "success") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
-function taskVariant(status) {
-  if (status === "OVERDUE" || status === "BLOCKED") return "coral";
-  if (status === "IN_PROGRESS") return "gold";
-  if (status === "COMPLETED" || status === "WAIVED") return "success";
-  return "indigo";
+function stateVariant(state) {
+  if (state === "Escalated") return "coral";
+  if (state === "Resolved") return "success";
+  if (state === "Review needed") return "gold";
+  return "aqua";
 }
 
-function taskSurface(task) {
-  if (!task.unlocked && !["COMPLETED", "WAIVED"].includes(task.taskStatus)) return "border-slate-200 bg-slate-50/60 opacity-80";
-  if (task.helpRequested) return "border-cyan-200 bg-[linear-gradient(135deg,rgba(236,254,255,0.92),rgba(255,255,255,0.96))]";
-  if (task.taskStatus === "OVERDUE") return "border-rose-200 bg-[linear-gradient(135deg,rgba(255,241,242,0.94),rgba(255,255,255,0.96))]";
-  if (task.taskStatus === "BLOCKED") return "border-amber-200 bg-[linear-gradient(135deg,rgba(255,251,235,0.94),rgba(255,255,255,0.96))]";
-  return "border-slate-200 bg-slate-50/90";
+function shareLink(caseItem) {
+  return `${window.location.origin}/go/${caseItem.id}`;
 }
 
-function queueEmpty(filters) {
-  return filters.risk !== "ALL" || filters.status !== "ALL" || filters.school !== "All schools" || filters.overdueOnly || filters.noResponseOnly;
-}
+function QRCodePanel({ caseItem, onNavigate }) {
+  const [copied, setCopied] = useState(false);
+  const src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(shareLink(caseItem))}`;
 
-export function StaffDashboard({ records, selectedCaseId, onSelectCase, filters, onFilterChange, stats, workflowSteps }) {
-  const MotionDiv = motion.div;
-  const selectedCase = records.find((record) => record.caseId === selectedCaseId) || records[0];
-  const schoolOptions = ["All schools", ...new Set(records.map((record) => record.collegeName))];
-
-  const overviewCards = [
-    { label: "Students in active transition", value: stats.activeCases, helper: "John Dewey seniors still moving from BMCC admit to ready-to-start.", icon: Inbox, accent: "from-indigo-500/16 to-cyan-400/10" },
-    { label: "Need staff attention now", value: stats.highRisk, helper: "Students with real blockers, silence, or escalation signals.", icon: CircleAlert, accent: "from-rose-500/16 to-orange-300/14" },
-    { label: "Missed deadline steps", value: stats.overdueTasks, helper: "Live BMCC tasks already past due and still unresolved.", icon: Clock3, accent: "from-orange-400/16 to-rose-400/12" },
-    { label: "Resolved outcomes", value: stats.closedCases, helper: "Cases closed after enrollment confirmation or changed plans.", icon: CheckCheck, accent: "from-emerald-400/16 to-cyan-300/14" },
-  ];
-
-  const interventionBoard = [
-    ["Stuck on aid", stats.stuckOnAid],
-    ["Meningitis incomplete", stats.blockedOnImmunization],
-    ["Advising incomplete", stats.advisingIncomplete],
-    ["Not registered", stats.notRegistered],
-    ["Need intervention now", stats.needsInterventionNow],
-    ["On track", stats.onTrack],
-  ];
+  async function handleCopy() {
+    await navigator.clipboard.writeText(shareLink(caseItem));
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1400);
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-        <Card className="overflow-hidden border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.78),rgba(244,249,255,0.92))]">
-          <CardContent className="p-7">
-            <div className="flex flex-wrap items-start justify-between gap-6">
-              <div className="max-w-2xl">
-                <Badge variant="indigo">Staff command center</Badge>
-                <h1 className="mt-4 text-4xl font-semibold tracking-[-0.06em] text-slate-950 md:text-5xl">See who needs intervention right now.</h1>
-                <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">Summer Melt Case Engine stays product-first, while the John Dewey to BMCC handoff makes the workflow feel like a real NYC public school to CUNY transition.</p>
-                <p className="mt-3 text-sm leading-6 text-slate-500">Demo scenario modeled on real NYC-to-CUNY workflows. It does not imply an official John Dewey or BMCC partnership.</p>
-              </div>
-              <div className="grid min-w-[280px] gap-3 rounded-[28px] border border-indigo-100 bg-[linear-gradient(180deg,rgba(48,85,255,0.06),rgba(18,201,210,0.04))] p-5">
-                <div className="flex items-center gap-3"><div className="rounded-[18px] bg-slate-950 p-3 text-white"><Sparkles className="size-5" /></div><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Live workflow</p><p className="mt-1 text-sm font-semibold text-slate-900">Student and staff actions visibly trigger each other</p></div></div>
-                <div className="grid gap-3">{workflowSteps.map((step) => <div key={step.id} className={`rounded-[22px] border px-4 py-3 ${step.state === "done" ? "border-emerald-200 bg-emerald-50/80" : step.state === "active" ? "border-indigo-200 bg-indigo-50/80" : step.state === "warning" ? "border-rose-200 bg-rose-50/80" : "border-slate-200 bg-white/70"}`}><div className="flex items-center justify-between gap-3"><p className="text-sm font-semibold text-slate-900">{step.label}</p><Badge variant={step.state === "done" ? "success" : step.state === "active" ? "indigo" : step.state === "warning" ? "coral" : "default"}>{step.state}</Badge></div><p className="mt-2 text-sm text-slate-500">{step.detail}</p></div>)}</div>
-              </div>
+    <Card className="border-white/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(245,248,244,0.98))]">
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Student access</p>
+            <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-slate-950">QR and share link</h3>
+          </div>
+          <div className="rounded-2xl bg-slate-950 p-3 text-white">
+            <QrCode className="size-5" />
+          </div>
+        </div>
+        <div className="mt-4 grid gap-4 lg:grid-cols-[220px_1fr] lg:items-center">
+          <div className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+            <img src={src} alt="Scenario QR code" className="mx-auto h-[188px] w-[188px] rounded-2xl" />
+          </div>
+          <div className="space-y-3">
+            <div className="rounded-[22px] border border-slate-200 bg-slate-50/90 p-4 text-sm text-slate-600">
+              Student route opens the focused blocker flow directly. This is the handoff surface, not a portal.
             </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-2">{overviewCards.map((card) => <MotionDiv key={card.label} whileHover={{ y: -2 }} transition={{ duration: 0.18 }}><Card className="h-full bg-[linear-gradient(180deg,rgba(255,255,255,0.82),rgba(248,250,253,0.95))]"><CardContent className="p-6"><div className="flex items-start justify-between gap-4"><div><p className="text-sm font-medium text-slate-500">{card.label}</p><p className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-slate-950">{card.value}</p><p className="mt-2 text-sm leading-6 text-slate-500">{card.helper}</p></div><div className={`rounded-[24px] bg-gradient-to-br ${card.accent} p-4`}><card.icon className="size-5 text-slate-900" /></div></div></CardContent></Card></MotionDiv>)}</div>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[0.72fr_1.28fr]">
-        <Card className="bg-[linear-gradient(180deg,rgba(255,255,255,0.84),rgba(247,250,253,0.92))]">
-          <CardHeader className="pb-4">
-            <div className="flex items-start justify-between gap-4"><div><CardTitle>Case queue</CardTitle><CardDescription>Filter by urgency, status, and school while keeping the BMCC sequence visible.</CardDescription></div><div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-slate-500"><Filter className="size-4" /></div></div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-2">{["ALL", "HIGH", "MEDIUM", "LOW"].map((value) => <button key={value} onClick={() => onFilterChange("risk", value)} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${filters.risk === value ? "bg-slate-950 text-white" : "border border-slate-200 bg-white text-slate-500 hover:border-slate-300"}`}>{value === "ALL" ? "All risk" : titleCase(value)}</button>)}</div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <select value={filters.status} onChange={(event) => onFilterChange("status", event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-700 outline-none"><option value="ALL">All status</option><option value="ACTIVE">Active</option><option value="CLOSED">Closed</option><option value="BLOCKED">Blocked</option><option value="NOT_ATTENDING">Not attending</option></select>
-              <select value={filters.school} onChange={(event) => onFilterChange("school", event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-700 outline-none">{schoolOptions.map((school) => <option key={school} value={school}>{school}</option>)}</select>
+            <div className="rounded-[22px] border border-slate-200 bg-white p-4 text-sm text-slate-700">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Share link</p>
+              <p className="mt-2 break-all font-medium text-slate-900">{shareLink(caseItem)}</p>
             </div>
-            <div className="flex flex-wrap gap-2">{[{ key: "overdueOnly", label: "Overdue only" }, { key: "noResponseOnly", label: "No response" }].map((toggle) => <button key={toggle.key} onClick={() => onFilterChange(toggle.key, !filters[toggle.key])} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${filters[toggle.key] ? "bg-rose-50 text-rose-700 ring-1 ring-rose-200" : "border border-slate-200 bg-white text-slate-500"}`}>{toggle.label}</button>)}</div>
-            <ScrollArea className="h-[560px] pr-2"><div className="space-y-3">{records.length === 0 ? <div className="rounded-[26px] border border-dashed border-slate-200 bg-slate-50/80 px-5 py-12 text-center"><p className="text-base font-semibold text-slate-900">No cases match this view.</p><p className="mt-2 text-sm leading-6 text-slate-500">{queueEmpty(filters) ? "Clear one or two filters to bring students back into the queue." : "The queue will populate when active summer cases are available."}</p></div> : records.map((record) => <button key={record.caseId} onClick={() => onSelectCase(record.caseId)} className={`w-full rounded-[26px] border p-4 text-left transition ${selectedCase.caseId === record.caseId ? "border-indigo-200 bg-[linear-gradient(135deg,rgba(42,89,255,0.08),rgba(29,216,208,0.04))]" : "border-slate-200 bg-white/80 hover:border-slate-300"}`}><div className="flex items-start justify-between gap-4"><div className="flex items-start gap-3"><Avatar><AvatarFallback>{record.student.firstName[0]}{record.student.lastName[0]}</AvatarFallback></Avatar><div><div className="flex items-center gap-2"><p className="font-semibold text-slate-950">{record.student.fullName}</p><Badge variant={riskVariant(record.riskLevel)}>{record.riskLevel}</Badge></div><p className="mt-1 text-sm text-slate-500">{record.student.highSchoolName} to {record.collegeName}</p><div className="mt-2 flex flex-wrap gap-2">{record.overdueCount > 0 && <Badge variant="coral">{record.overdueCount} overdue</Badge>}{record.tasks.some((task) => task.taskType === "MENINGITIS" && !["COMPLETED", "WAIVED"].includes(task.taskStatus)) && <Badge variant="gold">meningitis</Badge>}{record.tasks.some((task) => task.taskType === "ADVISING" && !["COMPLETED", "WAIVED"].includes(task.taskStatus)) && <Badge variant="gold">advising</Badge>}{record.tasks.some((task) => task.taskType === "REGISTRATION" && !["COMPLETED", "WAIVED"].includes(task.taskStatus)) && <Badge variant="aqua">registration</Badge>}{record.noResponse && <Badge variant="coral">No response</Badge>}</div></div></div><ArrowUpRight className="mt-1 size-4 text-slate-400" /></div></button>)}</div></ScrollArea>
-          </CardContent>
-        </Card>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={handleCopy}>
+                <Copy className="size-4" />
+                {copied ? "Copied" : "Copy link"}
+              </Button>
+              <Button onClick={() => onNavigate(`/go/${caseItem.id}`)}>
+                <Smartphone className="size-4" />
+                Open student view
+              </Button>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
-        <div className="space-y-6">
-          <Card className="overflow-hidden bg-[linear-gradient(180deg,rgba(255,255,255,0.84),rgba(248,251,255,0.96))]">
-            <CardHeader className="border-b border-slate-200/80 pb-5">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="flex items-start gap-4"><Avatar className="size-14 rounded-[22px]"><AvatarFallback className="text-base">{selectedCase.student.firstName[0]}{selectedCase.student.lastName[0]}</AvatarFallback></Avatar><div><div className="flex flex-wrap items-center gap-2"><CardTitle className="text-2xl text-slate-950">{selectedCase.student.fullName}</CardTitle><Badge variant={riskVariant(selectedCase.riskLevel)}>{selectedCase.riskLevel} risk</Badge><Badge variant={selectedCase.caseStatus === "CLOSED" ? "success" : "indigo"}>{titleCase(selectedCase.caseStatus)}</Badge></div><CardDescription className="mt-2 max-w-2xl text-sm leading-6">{selectedCase.student.highSchoolName} • {selectedCase.collegeName} • Intended start {formatDate(selectedCase.intendedEnrollmentDate)}</CardDescription></div></div>
-                <div className="flex flex-wrap gap-2"><Button variant="secondary">Send reminder</Button><Button variant="coral">Flag for outreach</Button><Button>Mark task complete</Button><Button variant="ghost">Close case</Button></div>
-              </div>
-            </CardHeader>
-            <CardContent className="grid gap-6 p-6 xl:grid-cols-[0.72fr_1.28fr]">
-              <div className="space-y-4">
-                <div className="rounded-[26px] border border-rose-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(253,242,248,0.9))] p-5"><div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">AI risk summary</p><Badge variant={riskVariant(selectedCase.riskLevel)}>{selectedCase.riskLevel}</Badge></div><p className="mt-4 text-sm leading-6 text-slate-700">{selectedCase.aiRiskSummary}</p><div className="mt-4 flex flex-wrap gap-2">{selectedCase.riskReasons.map((reason) => <Badge key={reason} variant="coral">{reason}</Badge>)}</div></div>
-                <div className="rounded-[26px] border border-indigo-100 bg-[linear-gradient(135deg,rgba(238,244,255,0.95),rgba(255,255,255,0.96))] p-5"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">AI next-best action</p><h3 className="mt-2 text-xl font-semibold tracking-[-0.04em] text-slate-950">{selectedCase.aiSuggestedAction}</h3></div><div className="rounded-[18px] bg-indigo-600 p-3 text-white"><Flag className="size-4" /></div></div><div className="mt-4 rounded-[18px] border border-white/80 bg-white/90 px-4 py-3 text-sm"><span className="font-medium text-slate-500">Trigger source</span><span className="ml-2 font-semibold text-slate-900">{selectedCase.automationTriggerSource}</span></div></div>
-                <div className="rounded-[26px] border border-slate-200 bg-white/80 p-5 space-y-3"><p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">AI reply classification</p><div className="rounded-[20px] border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-700">Latest intent: <span className="font-semibold text-slate-900">{selectedCase.aiReplyIntent}</span></div><div className="rounded-[20px] border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-700">Student action state: {selectedCase.studentActionState}</div><div className="rounded-[20px] border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-700">Staff action state: {selectedCase.staffActionState}</div></div>
-                <div className="rounded-[26px] border border-slate-200 bg-white/80 p-5"><p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Profile</p><div className="mt-4 space-y-3 text-sm text-slate-600"><div className="flex justify-between gap-4"><span>Phone</span><span className="font-semibold text-slate-900">{formatPhone(selectedCase.student.phone)}</span></div><div className="flex justify-between gap-4"><span>Email</span><span className="font-semibold text-slate-900">{selectedCase.student.email}</span></div><div className="flex justify-between gap-4"><span>Support owner</span><span className="font-semibold text-slate-900">{selectedCase.staff.fullName}</span></div><div className="flex justify-between gap-4"><span>Last response</span><span className="font-semibold text-slate-900">{selectedCase.lastStudentResponseAt ? formatDateTime(selectedCase.lastStudentResponseAt) : "No response yet"}</span></div></div></div>
-              </div>
+export function StaffDashboard({
+  cases,
+  selectedCase,
+  scenarioTemplates,
+  presentationMode,
+  onNavigate,
+  onCreateCase,
+  onResetDemo,
+  onSelectCase,
+  onForceEscalation,
+  onTogglePresentation,
+  children,
+}) {
+  const MotionDiv = motion.div;
+  const [templateId, setTemplateId] = useState(scenarioTemplates[0].id);
 
-              <div className="space-y-6">
-                <div className="rounded-[28px] border border-slate-200 bg-white/85 p-5"><div className="flex items-center justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Current BMCC step</p><h3 className="mt-2 text-lg font-semibold text-slate-950">{selectedCase.urgentTask.taskName}</h3></div><Badge variant={taskVariant(selectedCase.urgentTask.taskStatus)}>{titleCase(selectedCase.urgentTask.taskStatus)}</Badge></div><p className="mt-3 text-sm leading-6 text-slate-600">{selectedCase.urgentTask.studentWhy}</p><div className="mt-4 grid gap-3 md:grid-cols-3"><div className="rounded-[20px] border border-slate-200 bg-slate-50/80 p-4 text-sm"><p className="font-medium text-slate-400">Due</p><p className="mt-1 font-semibold text-slate-900">{formatDate(selectedCase.urgentTask.dueDate)}</p></div><div className="rounded-[20px] border border-slate-200 bg-slate-50/80 p-4 text-sm"><p className="font-medium text-slate-400">What unlocks next</p><p className="mt-1 text-slate-700">{selectedCase.urgentTask.unlockText}</p></div><div className="rounded-[20px] border border-slate-200 bg-slate-50/80 p-4 text-sm"><p className="font-medium text-slate-400">Help text</p><p className="mt-1 text-slate-700">{selectedCase.urgentTask.helpText}</p></div></div></div>
-                <div className="rounded-[28px] border border-slate-200 bg-white/85 p-5"><div className="flex items-center justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Tasks</p><h3 className="mt-2 text-lg font-semibold text-slate-950">Real NYC to BMCC completion path</h3></div><div className="min-w-48"><div className="mb-2 flex items-center justify-between text-sm"><span className="text-slate-500">Progress</span><span className="font-semibold text-slate-900">{selectedCase.progress}%</span></div><Progress value={selectedCase.progress} /></div></div><div className="mt-5 space-y-3">{selectedCase.tasks.map((task) => <div key={task.taskId} className={`grid gap-3 rounded-[22px] border p-4 md:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr] md:items-center ${taskSurface(task)}`}><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold text-slate-900">{task.taskName}</p><Badge variant={taskVariant(task.taskStatus)}>{!task.unlocked && !["COMPLETED", "WAIVED"].includes(task.taskStatus) ? "Locked" : titleCase(task.taskStatus)}</Badge>{task.helpRequested && <Badge variant="aqua"><HandHelping className="size-3" />Help requested</Badge>}</div><p className="mt-2 text-sm text-slate-500">{task.taskCategory}</p>{!task.unlocked && !["COMPLETED", "WAIVED"].includes(task.taskStatus) && <p className="mt-2 text-sm text-slate-500">{task.lockedReason}</p>}</div><div className="text-sm text-slate-600"><p className="font-medium text-slate-400">Due</p><p className="mt-1 font-semibold text-slate-900">{formatDate(task.dueDate)}</p></div><div className="text-sm text-slate-600"><p className="font-medium text-slate-400">Reminder</p><p className="mt-1 font-semibold text-slate-900">{task.nextReminderAt ? formatDate(task.nextReminderAt) : "Stopped"}</p></div><div className="text-sm text-slate-600"><p className="font-medium text-slate-400">Support</p><p className="mt-1 font-semibold text-slate-900">{task.helpRequested ? "Student asked for help" : task.requiresHumanSupport ? "Needs staff" : "Auto"}</p></div></div>)}</div></div>
-                <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]"><div className="rounded-[28px] border border-slate-200 bg-white/85 p-5"><p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Message timeline</p><div className="mt-4 space-y-4">{selectedCase.messages.map((message, index) => <div key={message.messageId} className="relative pl-6">{index !== selectedCase.messages.length - 1 && <span className="absolute left-[9px] top-7 h-[calc(100%+10px)] w-px bg-slate-200" />}<span className="absolute left-0 top-1 size-5 rounded-full border border-white bg-slate-950" /><p className="text-sm font-semibold text-slate-900">{message.sentBy === "system" ? "System reminder" : message.sentBy === "student" ? "Student reply" : "Staff response"}</p><p className="mt-1 text-sm leading-6 text-slate-600">{message.body}</p><p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-slate-400">{formatDateTime(message.sentAt || message.receivedAt || message.createdAt)}</p></div>)}</div></div><div className="rounded-[28px] border border-slate-200 bg-white/85 p-5"><p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Interventions and notes</p><div className="mt-4 space-y-3">{selectedCase.interventions.map((item) => <div key={item.interventionId} className="rounded-[20px] border border-slate-200 bg-slate-50/90 p-4"><div className="flex items-center gap-2"><MessageCircleWarning className="size-4 text-rose-500" /><p className="text-sm font-semibold text-slate-900">{titleCase(item.interventionType)}</p></div><p className="mt-2 text-sm leading-6 text-slate-600">{item.reason}</p><p className="mt-2 text-sm text-slate-500">Follow-up {formatDateTime(item.followUpDueAt)}</p></div>)}{selectedCase.caseNotes.map((note) => <div key={note.noteId} className="rounded-[20px] border border-slate-200 bg-slate-50/90 p-4"><p className="text-sm font-semibold text-slate-900">{titleCase(note.noteType)}</p><p className="mt-2 text-sm leading-6 text-slate-600">{note.noteText}</p></div>)}</div></div></div>
+  const alerts = useMemo(
+    () => cases.flatMap((caseItem) => caseItem.alerts.map((alert) => ({ ...alert, caseId: caseItem.id, studentName: caseItem.studentName }))).sort((a, b) => new Date(b.at) - new Date(a.at)),
+    [cases],
+  );
+
+  const activeCases = useMemo(
+    () => [...cases].sort((a, b) => new Date(b.lastUpdatedAt) - new Date(a.lastUpdatedAt)),
+    [cases],
+  );
+
+  const selectedTemplate = scenarioTemplates.find((entry) => entry.id === templateId);
+
+  return (
+    <main className="relative mx-auto w-full max-w-[1540px] px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
+      <MotionDiv initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.42, ease: "easeOut" }} className="space-y-4">
+        <section className={`grid gap-4 ${presentationMode ? "xl:grid-cols-[1.06fr_0.94fr]" : "xl:grid-cols-[1.12fr_0.88fr]"}`}>
+          <Card className="border-white/75 bg-white/82">
+            <CardContent className="p-6 sm:p-7">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="indigo">First Path</Badge>
+                    <Badge variant="aqua">Staff control room</Badge>
+                  </div>
+                  <h1 className="mt-4 text-3xl font-semibold tracking-[-0.06em] text-slate-950 sm:text-4xl">
+                    Live onboarding exception handoff
+                  </h1>
+                  <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
+                    Start one scenario, share one QR, and watch the student response update the owning office in real time.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="secondary" onClick={onTogglePresentation}>Presentation mode</Button>
+                  <Button variant="secondary" onClick={onResetDemo}>
+                    <RefreshCcw className="size-4" />
+                    Reset demo
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{interventionBoard.map(([label, value]) => <Card key={label} className="bg-[linear-gradient(180deg,rgba(255,255,255,0.84),rgba(248,250,255,0.96))]"><CardContent className="p-5"><p className="text-sm font-medium text-slate-500">{label}</p><p className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-slate-950">{value}</p></CardContent></Card>)}</div>
+          <Card className="border-white/75 bg-[linear-gradient(180deg,rgba(247,250,247,0.92),rgba(255,255,255,0.98))]">
+            <CardContent className="p-6 sm:p-7">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Start scenario</p>
+              <div className="mt-4 grid gap-3">
+                <label className="text-sm font-medium text-slate-600" htmlFor="scenario-template">Scenario template</label>
+                <select id="scenario-template" value={templateId} onChange={(event) => setTemplateId(event.target.value)} className="h-12 rounded-[18px] border border-slate-200 bg-white px-4 text-sm text-slate-700 outline-none">
+                  {scenarioTemplates.map((template) => (
+                    <option key={template.id} value={template.id}>{template.label}</option>
+                  ))}
+                </select>
+                <div className="rounded-[22px] border border-slate-200 bg-slate-50/85 p-4 text-sm leading-6 text-slate-600">
+                  <p className="font-semibold text-slate-900">{selectedTemplate.blockerTitle}</p>
+                  <p className="mt-2">Owned by {selectedTemplate.ownerOffice}. Student sees one blocker, one recommended action, and a short list of realistic responses.</p>
+                </div>
+                <Button onClick={() => onCreateCase(templateId)}>
+                  <Plus className="size-4" />
+                  Start scenario
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
 
-          <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-            <Card className="bg-[linear-gradient(180deg,rgba(255,255,255,0.84),rgba(248,250,255,0.96))]"><CardHeader><CardTitle>Outcome mix</CardTitle><CardDescription>Simple portfolio view for staff huddles.</CardDescription></CardHeader><CardContent className="grid gap-3">{[{ label: "Verified enrolled", value: 33, tone: "bg-emerald-500" }, { label: "Needs intervention", value: 50, tone: "bg-rose-500" }, { label: "On track", value: 17, tone: "bg-indigo-500" }].map((item) => <div key={item.label} className="rounded-[22px] border border-slate-200 bg-slate-50/90 p-4"><div className="mb-3 flex items-center justify-between"><p className="font-semibold text-slate-900">{item.label}</p><p className="text-sm font-semibold text-slate-500">{item.value}%</p></div><div className="h-2 rounded-full bg-slate-200"><div className={`h-2 rounded-full ${item.tone}`} style={{ width: `${item.value}%` }} /></div></div>)}</CardContent></Card>
-            <Card className="overflow-hidden bg-[linear-gradient(135deg,rgba(36,56,128,0.98),rgba(16,185,188,0.9))] text-white"><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">Focus this morning</p><h3 className="mt-3 text-2xl font-semibold tracking-[-0.04em]">Protect BMCC starts before classes begin.</h3></div><GraduationCap className="size-8 text-white/80" /></div><p className="mt-4 text-sm leading-7 text-white/80">Priority cases are concentrated around aid verification, meningitis acknowledgement, advising completion, and silent students who have not confirmed BMCC intent.</p><div className="mt-6 space-y-3">{["Student replies are auto-classified into practical intent labels", "Staff interventions generate targeted follow-up messages", "The student Today panel changes when staff changes the workflow state"].map((line) => <div key={line} className="rounded-[20px] border border-white/16 bg-white/10 px-4 py-3 text-sm">{line}</div>)}</div></CardContent></Card>
+        <section className={`grid gap-4 ${presentationMode ? "xl:grid-cols-[0.8fr_1.2fr]" : "xl:grid-cols-[0.76fr_0.64fr_0.6fr]"}`}>
+          <Card className="border-white/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(247,249,246,0.98))]">
+            <CardContent className="p-5 sm:p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Active cases</p>
+                  <h2 className="mt-2 text-xl font-semibold tracking-[-0.04em] text-slate-950">Control queue</h2>
+                </div>
+                <Badge variant="default">{activeCases.length} live</Badge>
+              </div>
+              <div className="mt-4 space-y-3">
+                {activeCases.map((caseItem) => (
+                  <button
+                    key={caseItem.id}
+                    type="button"
+                    onClick={() => onSelectCase(caseItem.id)}
+                    className={`w-full rounded-[24px] border p-4 text-left transition ${selectedCase.id === caseItem.id ? "border-emerald-200 bg-emerald-50/70" : "border-slate-200 bg-white hover:border-slate-300"}`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold text-slate-950">{caseItem.studentName}</p>
+                          <Badge variant={stateVariant(caseItem.escalationState)}>{caseItem.escalationState}</Badge>
+                        </div>
+                        <p className="mt-1 text-sm text-slate-500">{caseItem.blockerTitle}</p>
+                        <div className="mt-3 grid gap-1 text-sm text-slate-600">
+                          <p><span className="font-medium text-slate-500">Status:</span> {caseItem.status}</p>
+                          <p><span className="font-medium text-slate-500">Owner:</span> {caseItem.nextOwnerOffice}</p>
+                          <p><span className="font-medium text-slate-500">Last update:</span> {caseItem.lastActionLabel}</p>
+                        </div>
+                      </div>
+                      <div className="text-right text-sm text-slate-500">
+                        <p>{caseItem.urgency}</p>
+                        <p className="mt-2">{caseItem.dueLabel}</p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="space-y-4">
+            <Card className="border-white/75 bg-white/88">
+              <CardContent className="p-5 sm:p-6">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="gold">{selectedCase.urgency}</Badge>
+                      <Badge variant={stateVariant(selectedCase.escalationState)}>{selectedCase.escalationState}</Badge>
+                    </div>
+                    <h2 className="mt-3 text-2xl font-semibold tracking-[-0.05em] text-slate-950">{selectedCase.studentName}</h2>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{selectedCase.highSchoolName} to {selectedCase.collegeName}</p>
+                  </div>
+                  <Button variant="secondary" onClick={() => onForceEscalation(selectedCase.id)}>
+                    <AlertTriangle className="size-4" />
+                    Escalate silence
+                  </Button>
+                </div>
+                <div className="mt-5 grid gap-3">
+                  <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Current blocker</p>
+                    <h3 className="mt-2 text-lg font-semibold text-slate-950">{selectedCase.blockerTitle}</h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{selectedCase.blockerDetail}</p>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-[22px] border border-slate-200 bg-white p-4 text-sm text-slate-700">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Owner now</p>
+                      <p className="mt-2 font-semibold text-slate-950">{selectedCase.nextOwnerOffice}</p>
+                    </div>
+                    <div className="rounded-[22px] border border-slate-200 bg-white p-4 text-sm text-slate-700">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Student state</p>
+                      <p className="mt-2 font-semibold text-slate-950">{selectedCase.studentState}</p>
+                    </div>
+                    <div className="rounded-[22px] border border-slate-200 bg-white p-4 text-sm text-slate-700">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Last changed</p>
+                      <p className="mt-2 font-semibold text-slate-950">{formatDateTime(selectedCase.lastUpdatedAt)}</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <QRCodePanel caseItem={selectedCase} onNavigate={onNavigate} />
+
+            <Card className="border-white/75 bg-white/88">
+              <CardContent className="p-5 sm:p-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Case timeline</p>
+                <div className="mt-4 space-y-3">
+                  {selectedCase.timeline.map((entry) => (
+                    <div key={entry.id} className="rounded-[20px] border border-slate-200 bg-slate-50/80 p-4">
+                      <p className="text-sm font-semibold text-slate-900">{entry.title}</p>
+                      <p className="mt-1 text-sm leading-6 text-slate-600">{entry.detail}</p>
+                      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{formatDateTime(entry.at)}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </div>
-      </div>
-    </div>
+
+          <div className="space-y-4">
+            {!presentationMode && children}
+
+            <Card className="border-white/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(247,250,247,0.98))]">
+              <CardContent className="p-5 sm:p-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Alerts</p>
+                <div className="mt-4 space-y-3">
+                  {alerts.length === 0 ? (
+                    <div className="rounded-[20px] border border-dashed border-slate-200 bg-slate-50/70 p-6 text-sm text-slate-500">
+                      No alerts yet. Student actions will show up here.
+                    </div>
+                  ) : (
+                    alerts.map((alert) => (
+                      <div key={alert.id} className={`rounded-[20px] border p-4 ${toneClasses(alert.tone)}`}>
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="font-semibold">{alert.title}</p>
+                          <Badge variant="default">{alert.office}</Badge>
+                        </div>
+                        <p className="mt-2 text-sm leading-6">{alert.body}</p>
+                        <p className="mt-3 text-xs font-semibold uppercase tracking-[0.14em] opacity-70">{alert.studentName} · {formatDateTime(alert.at)}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+      </MotionDiv>
+    </main>
   );
 }
 
