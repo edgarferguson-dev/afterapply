@@ -1,5 +1,11 @@
 const now = "2026-04-07T11:00:00.000Z";
 
+export const approvedScenarioPool = [
+  "immunization-records",
+  "fafsa-verification",
+  "advising-hold",
+];
+
 export const scenarioTemplates = [
   {
     id: "immunization-records",
@@ -88,9 +94,23 @@ export const scenarioTemplates = [
 const baseTimeline = [
   {
     id: "event-1",
-    type: "scenario_started",
-    title: "Scenario started by staff",
-    detail: "Case was opened from the control room and is ready to share by QR or link.",
+    type: "case_created",
+    title: "Live case created",
+    detail: "A new live case was opened from the control room.",
+    at: now,
+  },
+  {
+    id: "event-2",
+    type: "scenario_assigned",
+    title: "Scenario assigned",
+    detail: "One onboarding blocker was assigned to the student session.",
+    at: now,
+  },
+  {
+    id: "event-3",
+    type: "qr_generated",
+    title: "QR and share link ready",
+    detail: "Student access is ready by QR code and shareable link.",
     at: now,
   },
 ];
@@ -108,6 +128,8 @@ function buildCase(id, templateId, studentName, options = {}) {
     dueLabel: template.dueLabel,
     ownerOffice: template.ownerOffice,
     nextOwnerOffice: options.nextOwnerOffice || template.ownerOffice,
+    sessionId: options.sessionId || `sess-${id.replace("case-", "")}`,
+    triggerMode: options.triggerMode || "hero",
     escalationState: options.escalationState || "Watching",
     status: options.status || "Waiting on student",
     blockerTitle: template.blockerTitle,
@@ -115,6 +137,8 @@ function buildCase(id, templateId, studentName, options = {}) {
     whyItMatters: template.whyItMatters,
     recommendedAction: template.recommendedAction,
     studentState: options.studentState || "Waiting for student response",
+    sessionState: options.sessionState || "Awaiting student response",
+    enteredFlowAt: options.enteredFlowAt || null,
     lastActionLabel: options.lastActionLabel || "Scenario created",
     lastUpdatedAt: options.lastUpdatedAt || now,
     shareToken: `${id}-share`,
@@ -150,6 +174,13 @@ export const initialCases = [
         detail: "Financial Aid now owns the next step.",
         at: "2026-04-07T10:42:00.000Z",
       },
+      {
+        id: "event-101b",
+        type: "ownership_changed",
+        title: "Ownership changed",
+        detail: "Case was routed to Financial Aid for staff follow-up.",
+        at: "2026-04-07T10:42:30.000Z",
+      },
     ],
   }),
   buildCase("case-102", "advising-hold", "Diego Santos", {
@@ -181,6 +212,13 @@ export const initialCases = [
         title: "Student says the step is already complete",
         detail: "Ownership moved from Health Compliance to Registrar review.",
         at: "2026-04-07T09:58:00.000Z",
+      },
+      {
+        id: "event-103b",
+        type: "awaiting_review",
+        title: "Awaiting staff review",
+        detail: "Registrar review is now needed before the case can close.",
+        at: "2026-04-07T09:58:30.000Z",
       },
     ],
   }),

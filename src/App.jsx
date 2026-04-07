@@ -6,7 +6,7 @@ import { StudentMobile } from "./components/summer-melt/StudentMobile";
 import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
 import { Card, CardContent } from "./components/ui/card";
-import { actionBehaviors, demoStudents, initialCases, scenarioTemplates } from "./data/firstPathData";
+import { actionBehaviors, approvedScenarioPool, demoStudents, initialCases, scenarioTemplates } from "./data/firstPathData";
 
 const STORAGE_KEY = "first-path-live-cases";
 
@@ -18,14 +18,21 @@ function getInitialPath() {
   return window.location.pathname || "/";
 }
 
-function readCases() {
+function markCaseEnteredFromPath(cases, path) {
+  if (!path.startsWith("/go/")) return cases;
+
+  const caseId = path.split("/go/")[1];
+  return cases.map((caseItem) => (caseItem.id === caseId ? markStudentEnteredFlow(caseItem) : caseItem));
+}
+
+function readCases(path = getInitialPath()) {
   const stored = window.localStorage.getItem(STORAGE_KEY);
-  if (!stored) return initialCases;
+  if (!stored) return markCaseEnteredFromPath(initialCases, path);
 
   try {
-    return JSON.parse(stored);
+    return markCaseEnteredFromPath(JSON.parse(stored), path);
   } catch {
-    return initialCases;
+    return markCaseEnteredFromPath(initialCases, path);
   }
 }
 
@@ -42,9 +49,11 @@ function createCase(templateId, studentName) {
   const template = getTemplate(templateId);
   const timestamp = new Date().toISOString();
   const caseId = `case-${Date.now()}`;
+  const sessionId = `sess-${Math.random().toString(36).slice(2, 8)}`;
 
   return {
     id: caseId,
+    sessionId,
     scenarioId: template.id,
     studentName,
     collegeName: "BMCC",
@@ -53,6 +62,7 @@ function createCase(templateId, studentName) {
     dueLabel: template.dueLabel,
     ownerOffice: template.ownerOffice,
     nextOwnerOffice: template.ownerOffice,
+    triggerMode: "hero",
     escalationState: "Watching",
     status: "Waiting on student",
     blockerTitle: template.blockerTitle,
@@ -60,15 +70,31 @@ function createCase(templateId, studentName) {
     whyItMatters: template.whyItMatters,
     recommendedAction: template.recommendedAction,
     studentState: "QR ready to scan",
+    sessionState: "Awaiting student response",
+    enteredFlowAt: null,
     lastActionLabel: "Scenario created",
     lastUpdatedAt: timestamp,
     shareToken: `${caseId}-share`,
     alerts: [],
     timeline: [
       {
-        id: `${caseId}-started`,
-        type: "scenario_started",
-        title: "Scenario started by staff",
+        id: `${caseId}-created`,
+        type: "case_created",
+        title: "Live case created",
+        detail: `Session ${sessionId} was created for ${studentName}.`,
+        at: timestamp,
+      },
+      {
+        id: `${caseId}-assigned`,
+        type: "scenario_assigned",
+        title: "Scenario assigned",
+        detail: `${template.label} was assigned in ${template.ownerOffice}.`,
+        at: timestamp,
+      },
+      {
+        id: `${caseId}-qr-ready`,
+        type: "qr_generated",
+        title: "QR and share link ready",
         detail: `${template.ownerOffice} owns the first follow-up if the student does not respond.`,
         at: timestamp,
       },
@@ -81,6 +107,8 @@ function updateCaseWithAction(caseItem, actionId) {
   const behavior = actionBehaviors[actionId];
   const timestamp = new Date().toISOString();
   const updatedCase = behavior.update(caseItem, template);
+  const needsReview = updatedCase.escalationState === "Review needed";
+  const ownershipChanged = updatedCase.nextOwnerOffice !== caseItem.nextOwnerOffice;
 
   const alert = {
     id: `${caseItem.id}-${actionId}-${timestamp}`,
@@ -93,9 +121,39 @@ function updateCaseWithAction(caseItem, actionId) {
 
   return {
     ...updatedCase,
+    sessionState: needsReview ? "Awaiting staff review" : "Student response received",
     lastUpdatedAt: timestamp,
     alerts: [alert, ...caseItem.alerts].slice(0, 5),
     timeline: [
+      {
+        id: `${caseItem.id}-${actionId}-received-${timestamp}`,
+        type: "student_action_received",
+        title: "Student action received",
+        detail: `${caseItem.studentName} submitted ${behavior.alertTitle.toLowerCase()}.`,
+        at: timestamp,
+      },
+      ...(ownershipChanged
+        ? [
+            {
+              id: `${caseItem.id}-${actionId}-owner-${timestamp}`,
+              type: "ownership_changed",
+              title: "Ownership changed",
+              detail: `Case routed to ${updatedCase.nextOwnerOffice}.`,
+              at: timestamp,
+            },
+          ]
+        : []),
+      ...(needsReview
+        ? [
+            {
+              id: `${caseItem.id}-${actionId}-review-${timestamp}`,
+              type: "awaiting_review",
+              title: "Awaiting staff review",
+              detail: `${updatedCase.nextOwnerOffice} should verify before the case closes.`,
+              at: timestamp,
+            },
+          ]
+        : []),
       {
         id: `${caseItem.id}-${actionId}-${timestamp}`,
         type: "student_action",
@@ -116,6 +174,7 @@ function forceEscalation(caseItem) {
     status: "No response",
     escalationState: "Escalated",
     studentState: "No student response yet",
+    sessionState: "Escalated",
     lastActionLabel: "Demo timer forced escalation",
     lastUpdatedAt: timestamp,
     alerts: [
@@ -131,6 +190,13 @@ function forceEscalation(caseItem) {
     ].slice(0, 5),
     timeline: [
       {
+        id: `${caseItem.id}-silence-automation-${timestamp}`,
+        type: "escalation_triggered",
+        title: "Escalation triggered",
+        detail: "Automation escalated the case after no student response.",
+        at: timestamp,
+      },
+      {
         id: `${caseItem.id}-silence-${timestamp}`,
         type: "escalation",
         title: "No response escalated",
@@ -142,7 +208,32 @@ function forceEscalation(caseItem) {
   };
 }
 
-function LandingPage() {
+function markStudentEnteredFlow(caseItem) {
+  if (caseItem.enteredFlowAt) return caseItem;
+
+  const timestamp = new Date().toISOString();
+
+  return {
+    ...caseItem,
+    enteredFlowAt: timestamp,
+    studentState: "Student entered the live flow",
+    sessionState: "Student in flow",
+    lastActionLabel: "Student opened the scenario",
+    lastUpdatedAt: timestamp,
+    timeline: [
+      {
+        id: `${caseItem.id}-entered-${timestamp}`,
+        type: "student_entered_flow",
+        title: "Student entered flow",
+        detail: "The student opened the live scenario from QR or share link.",
+        at: timestamp,
+      },
+      ...caseItem.timeline,
+    ],
+  };
+}
+
+function LandingPage({ onNavigate }) {
   const MotionDiv = motion.div;
 
   return (
@@ -168,10 +259,10 @@ function LandingPage() {
             </p>
           </div>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button onClick={() => navigate("/admin")} className="justify-between">
+            <Button onClick={() => onNavigate("/admin")} className="justify-between">
               Open staff control room <ArrowRight className="size-4" />
             </Button>
-            <Button variant="secondary" onClick={() => navigate("/go/case-101")}>
+            <Button variant="secondary" onClick={() => onNavigate("/go/case-101")}>
               Open student scenario
             </Button>
           </div>
@@ -215,8 +306,8 @@ function LandingPage() {
 
 export default function App() {
   const [path, setPath] = useState(getInitialPath);
-  const [cases, setCases] = useState(readCases);
-  const [selectedCaseId, setSelectedCaseId] = useState(() => readCases()[0]?.id ?? initialCases[0].id);
+  const [cases, setCases] = useState(() => readCases(getInitialPath()));
+  const [selectedCaseId, setSelectedCaseId] = useState(() => readCases(getInitialPath())[0]?.id ?? initialCases[0].id);
   const [presentationMode, setPresentationMode] = useState(false);
 
   useEffect(() => {
@@ -227,7 +318,7 @@ export default function App() {
     const onPopState = () => setPath(getInitialPath());
     const onStorage = (event) => {
       if (event.key === STORAGE_KEY) {
-        setCases(readCases());
+        setCases(readCases(getInitialPath()));
       }
     };
 
@@ -245,18 +336,31 @@ export default function App() {
     [cases, selectedCaseId],
   );
 
-
   const scenarioPath = path.startsWith("/go/") ? path.split("/go/")[1] : null;
   const scenarioCase = scenarioPath ? cases.find((caseItem) => caseItem.id === scenarioPath) : null;
 
-  function handleCreateCase(templateId) {
+  function handleNavigate(nextPath) {
+    if (nextPath.startsWith("/go/")) {
+      setCases((current) => markCaseEnteredFromPath(current, nextPath));
+    }
+    navigate(nextPath);
+  }
+
+  function handleCreateCase(templateId, mode = "hero") {
     const studentName =
       demoStudents.find((name) => !cases.some((caseItem) => caseItem.studentName === name)) ||
       `Demo Student ${cases.length + 1}`;
-    const newCase = createCase(templateId, studentName);
+    const resolvedTemplateId =
+      mode === "shuffle"
+        ? approvedScenarioPool[Math.floor(Math.random() * approvedScenarioPool.length)]
+        : templateId;
+    const newCase = {
+      ...createCase(resolvedTemplateId, studentName),
+      triggerMode: mode,
+    };
     setCases((current) => [newCase, ...current]);
     setSelectedCaseId(newCase.id);
-    navigate("/admin");
+    handleNavigate("/admin");
   }
 
   function handleStudentAction(caseId, actionId) {
@@ -283,7 +387,7 @@ export default function App() {
     <div className="min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#f8f7f3_0%,#f4f1ea_52%,#f0ede6_100%)] text-slate-900">
       <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.4)_0%,transparent_20%,transparent_100%)]" />
 
-      {path === "/" && <LandingPage />}
+      {path === "/" && <LandingPage onNavigate={handleNavigate} />}
 
       {path === "/admin" && selectedCase && (
         <StaffDashboard
@@ -291,7 +395,7 @@ export default function App() {
           selectedCase={selectedCase}
           scenarioTemplates={scenarioTemplates}
           presentationMode={presentationMode}
-          onNavigate={navigate}
+          onNavigate={handleNavigate}
           onCreateCase={handleCreateCase}
           onResetDemo={handleResetDemo}
           onSelectCase={setSelectedCaseId}
@@ -310,16 +414,16 @@ export default function App() {
         <StudentMobile
           caseRecord={scenarioCase}
           onAction={handleStudentAction}
-          onNavigate={navigate}
+          onNavigate={handleNavigate}
         />
       )}
 
-      {!path.startsWith("/go/") && !["/", "/admin"].includes(path) && <LandingPage />}
+      {!path.startsWith("/go/") && !["/", "/admin"].includes(path) && <LandingPage onNavigate={handleNavigate} />}
 
       {path !== "/" && (
         <button
           type="button"
-          onClick={() => navigate("/")}
+          onClick={() => handleNavigate("/")}
           className="fixed bottom-5 right-5 inline-flex items-center gap-2 rounded-full border border-[color:var(--fp-border)] bg-[color:var(--fp-surface)] px-4 py-2 text-sm font-semibold text-slate-700 shadow-[0_18px_40px_rgba(24,33,38,0.08)] backdrop-blur"
         >
           First Path
