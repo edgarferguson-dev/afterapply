@@ -57,7 +57,7 @@ function processSteps(caseItem) {
       ? "Resolved"
       : caseItem.escalationState === "Review needed"
         ? "Awaiting review"
-        : "Awaiting review";
+        : "Active";
 
   const steps = [
     { id: "triggered", label: "Case triggered", done: true },
@@ -65,7 +65,7 @@ function processSteps(caseItem) {
     { id: "entered", label: "Student entered", done: hasEvent(caseItem, "student_entered_flow") },
     { id: "response", label: "Response received", done: hasEvent(caseItem, "student_action_received") },
     { id: "routed", label: "Routed to office", done: hasEvent(caseItem, "ownership_changed") || hasEvent(caseItem, "awaiting_review") || caseItem.escalationState === "Resolved" || caseItem.escalationState === "Escalated" },
-    { id: "final", label: finalLabel, done: caseItem.escalationState === "Resolved" || caseItem.escalationState === "Review needed" },
+    { id: "final", label: finalLabel, done: caseItem.escalationState === "Resolved" || caseItem.escalationState === "Review needed" || caseItem.escalationState === "Escalated" },
   ];
 
   const currentIndex = steps.findIndex((step) => !step.done);
@@ -77,29 +77,29 @@ function processSteps(caseItem) {
 
 function logicSummary(caseItem) {
   let interpretation = "System is waiting for the student to enter the live flow.";
-  let nextAction = "Keep the live session open and monitor for student response.";
+  let nextAction = "Monitor the live session for student entry and response.";
 
   if (caseItem.lastActionLabel === "Student tapped Need help") {
-    interpretation = "System interpreted the update as a help request and escalated it to a human office.";
-    nextAction = `Staff in ${caseItem.nextOwnerOffice} should review the blocker and contact the student.`;
+    interpretation = "System escalated help request to the owning office for human intervention.";
+    nextAction = `${caseItem.nextOwnerOffice} should review the blocker and contact the student immediately.`;
   } else if (caseItem.lastActionLabel === "Student tapped I already did this") {
-    interpretation = "System interpreted the update as a completion claim that still needs verification.";
-    nextAction = `${caseItem.nextOwnerOffice} should verify the record before closing the case.`;
+    interpretation = "System flagged completion claim for verification before case closure.";
+    nextAction = `${caseItem.nextOwnerOffice} must verify the record and resolve if confirmed.`;
   } else if (caseItem.lastActionLabel === "Student tapped Mark complete") {
-    interpretation = "System interpreted the update as completion and routed it for final confirmation.";
-    nextAction = `${caseItem.nextOwnerOffice} should confirm the blocker cleared and resolve the case.`;
+    interpretation = "System routed completion to the success office for final confirmation.";
+    nextAction = `${caseItem.nextOwnerOffice} should confirm clearance and close the case.`;
   } else if (caseItem.lastActionLabel === "Student tapped I can't do this yet") {
-    interpretation = "System interpreted the update as an active blocker and escalated for intervention.";
-    nextAction = `${caseItem.nextOwnerOffice} should review options and set the next follow-up.`;
+    interpretation = "System escalated active blocker requiring staff intervention.";
+    nextAction = `${caseItem.nextOwnerOffice} should review options and set follow-up plan.`;
   } else if (caseItem.lastActionLabel === "Student tapped My plans changed") {
-    interpretation = "System interpreted the update as a possible change in enrollment intent.";
-    nextAction = `${caseItem.nextOwnerOffice} should confirm whether the case should be rerouted or closed.`;
+    interpretation = "System flagged potential enrollment intent change for review.";
+    nextAction = `${caseItem.nextOwnerOffice} should confirm rerouting or case closure.`;
   } else if (caseItem.lastActionLabel === "Student opened the scenario") {
-    interpretation = "System detected that the student entered the live flow and is now awaiting a response.";
-    nextAction = "Watch for the student update and route it when it arrives.";
+    interpretation = "Student entered the live flow and system is awaiting response.";
+    nextAction = "Monitor for student action and route automatically when received.";
   } else if (caseItem.lastActionLabel === "Demo timer forced escalation") {
-    interpretation = "System escalated the case because no student response arrived in time.";
-    nextAction = `${caseItem.nextOwnerOffice} should intervene manually.`;
+    interpretation = "System escalated due to no student response within time window.";
+    nextAction = `${caseItem.nextOwnerOffice} must intervene manually.`;
   }
 
   return { interpretation, nextAction };

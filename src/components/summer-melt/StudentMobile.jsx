@@ -33,8 +33,8 @@ export function StudentMobile({ caseRecord, onAction, onNavigate, preview = fals
   const currentStopIndex = template.routeStops.findIndex((stop) => stop === template.currentStop);
   const responseExplanation =
     caseRecord.lastActionLabel === "Scenario created" || caseRecord.lastActionLabel === "Student opened the scenario"
-      ? `When you respond here, First Path sends the update to ${caseRecord.nextOwnerOffice} and changes the live case for staff.`
-      : `Your last update was routed to ${caseRecord.nextOwnerOffice}, and the control room changed the next step automatically.`;
+      ? `Your response will route instantly to ${caseRecord.nextOwnerOffice} and update the live case in the control room.`
+      : `Your last response was routed to ${caseRecord.nextOwnerOffice}. The control room shows the next step automatically.`;
   const tabs = [
     { id: "now", label: "Now", icon: Sparkles },
     { id: "progress", label: "Progress", icon: Rows3 },
