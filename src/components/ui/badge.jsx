@@ -6,12 +6,12 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: "border-slate-200 bg-slate-900/5 text-slate-600",
-        indigo: "border-indigo-200 bg-indigo-500/10 text-indigo-700",
-        aqua: "border-cyan-200 bg-cyan-400/10 text-cyan-700",
-        coral: "border-rose-200 bg-rose-400/10 text-rose-700",
-        gold: "border-amber-200 bg-amber-400/10 text-amber-700",
-        success: "border-emerald-200 bg-emerald-400/10 text-emerald-700",
+        default: "border-[color:var(--fp-line)] bg-[color:var(--fp-surface)] text-[color:var(--fp-muted)]",
+        indigo: "border-[color:rgba(0,120,198,0.2)] bg-[color:rgba(0,120,198,0.08)] text-[color:var(--fp-blue)]",
+        aqua: "border-[color:rgba(0,169,183,0.2)] bg-[color:rgba(0,169,183,0.08)] text-[color:var(--fp-teal)]",
+        coral: "border-[color:rgba(238,53,46,0.18)] bg-[color:rgba(238,53,46,0.08)] text-[color:var(--fp-red)]",
+        gold: "border-[color:rgba(122,90,0,0.18)] bg-[color:var(--fp-amber-bg)] text-[color:var(--fp-amber-text)]",
+        success: "border-[color:rgba(0,147,60,0.18)] bg-[color:rgba(0,147,60,0.08)] text-[color:var(--fp-green)]",
       },
     },
     defaultVariants: {

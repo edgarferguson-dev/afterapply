@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, ExternalLink, Presentation, ShieldCheck } from "lucide-react";
+import { ArrowRight, ExternalLink, Presentation } from "lucide-react";
 import { StaffDashboard } from "./components/summer-melt/StaffDashboard";
 import { StudentMobile } from "./components/summer-melt/StudentMobile";
 import { Badge } from "./components/ui/badge";
@@ -146,26 +146,27 @@ function LandingPage() {
   const MotionDiv = motion.div;
 
   return (
-    <main className="relative mx-auto flex min-h-screen w-full max-w-6xl items-center px-5 py-8 sm:px-8">
+    <main className="relative mx-auto flex min-h-screen w-full max-w-5xl items-center px-5 py-8 sm:px-8">
       <MotionDiv
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: "easeOut" }}
-        className="grid w-full gap-6 lg:grid-cols-[1.15fr_0.85fr]"
+        className="w-full"
       >
-        <section className="rounded-[36px] border border-white/70 bg-white/80 p-7 shadow-[0_28px_90px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-10">
-          <div className="flex flex-wrap gap-2">
+        <section className="rounded-[30px] border border-[color:var(--fp-line)] bg-[color:var(--fp-surface)] p-7 shadow-[var(--fp-shadow-md)] sm:p-10">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge variant="indigo">First Path</Badge>
             <Badge variant="aqua">Live onboarding exception demo</Badge>
           </div>
-          <h1 className="mt-6 max-w-3xl text-4xl font-semibold tracking-[-0.07em] text-slate-950 sm:text-5xl">
-            One blocker. One student action. One live office handoff.
-          </h1>
-          <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600">
-            First Path is a narrow demo of admitted-student onboarding in a CUNY-style workflow.
-            Staff starts a scenario, shares a QR code, and watches the student response update the
-            dashboard live.
-          </p>
+          <div className="mt-8 max-w-3xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-400">Staff trigger to student response</p>
+            <h1 className="mt-4 text-4xl font-semibold tracking-[-0.08em] text-slate-950 sm:text-[3.7rem] sm:leading-[1.02]">
+              One live handoff, not one more student portal.
+            </h1>
+            <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600">
+              Staff starts a scenario, the student scans one QR code, and the owning office sees the update immediately.
+            </p>
+          </div>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button onClick={() => navigate("/admin")} className="justify-between">
               Open staff control room <ArrowRight className="size-4" />
@@ -174,32 +175,38 @@ function LandingPage() {
               Open student scenario
             </Button>
           </div>
-        </section>
-
-        <section className="grid gap-4">
-          <Card className="border-white/75 bg-[linear-gradient(180deg,rgba(249,251,255,0.94),rgba(243,247,251,0.98))]">
-            <CardContent className="p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Core wedge</p>
-              <div className="mt-4 space-y-3 text-sm leading-7 text-slate-600">
-                <p>Staff triggers a scenario for one real blocker.</p>
-                <p>Student scans a QR and chooses one realistic response.</p>
-                <p>The correct office sees the change immediately.</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-white/75 bg-slate-950 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3">
-                <div className="rounded-2xl bg-white/10 p-3">
-                  <ShieldCheck className="size-5" />
+          <div className="mt-10 grid gap-4 border-t border-[color:var(--fp-line)] pt-6 lg:grid-cols-[1.15fr_0.85fr]">
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                { label: "1", title: "Staff starts scenario", body: "Pick one blocker and create one live case." },
+                { label: "2", title: "Student scans QR", body: "The phone opens a focused action flow, not a portal." },
+                { label: "3", title: "Office sees update", body: "Alert, ownership, and escalation change instantly." },
+              ].map((item) => (
+                <div key={item.title} className="rounded-[18px] bg-[color:var(--fp-surface-2)] px-5 py-5">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">{item.label}</p>
+                  <p className="mt-3 text-base font-semibold text-slate-950">{item.title}</p>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">{item.body}</p>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold">Built for class credibility</p>
-                  <p className="mt-1 text-sm text-white/70">Not a portal. Not a CRM. Just the exception loop.</p>
-                </div>
+              ))}
+            </div>
+            <div className="rounded-[22px] bg-[color:var(--fp-surface-2)] px-6 py-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/55">City handoff</p>
+              <div className="mt-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">City handoff</div>
+              <div className="mt-4 flex items-center gap-3">
+                {["Student", "Admissions", "Aid", "Advising", "Registrar"].map((stop, index) => (
+                  <div key={stop} className="flex items-center gap-3">
+                    <div className={`flex size-10 items-center justify-center rounded-full border text-sm font-semibold ${index === 2 ? "border-transparent bg-[color:var(--fp-orange)] text-white" : "border-[color:var(--fp-line)] bg-white text-slate-500"}`}>
+                      {stop.charAt(0)}
+                    </div>
+                    {index < 4 && <div className="h-px w-5 bg-[color:var(--fp-line)] sm:w-8" />}
+                  </div>
+                ))}
               </div>
-            </CardContent>
-          </Card>
+              <p className="mt-5 max-w-sm text-sm leading-7 text-slate-600">
+                First Path should feel closer to a city operations handoff than a student portal: clear route, visible signal changes, and one next owner at a time.
+              </p>
+            </div>
+          </div>
         </section>
       </MotionDiv>
     </main>
@@ -273,8 +280,8 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#f5f7f4_0%,#eef2ee_52%,#f7f8f5_100%)] text-slate-900">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,rgba(22,130,115,0.12),transparent_28%),radial-gradient(circle_at_80%_10%,rgba(35,80,156,0.08),transparent_18%),radial-gradient(circle_at_bottom_right,rgba(186,136,76,0.08),transparent_24%)]" />
+    <div className="min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#f8f7f3_0%,#f4f1ea_52%,#f0ede6_100%)] text-slate-900">
+      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.4)_0%,transparent_20%,transparent_100%)]" />
 
       {path === "/" && <LandingPage />}
 
@@ -313,7 +320,7 @@ export default function App() {
         <button
           type="button"
           onClick={() => navigate("/")}
-          className="fixed bottom-5 right-5 inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/88 px-4 py-2 text-sm font-semibold text-slate-700 shadow-[0_18px_40px_rgba(15,23,42,0.1)] backdrop-blur"
+          className="fixed bottom-5 right-5 inline-flex items-center gap-2 rounded-full border border-[color:var(--fp-border)] bg-[color:var(--fp-surface)] px-4 py-2 text-sm font-semibold text-slate-700 shadow-[0_18px_40px_rgba(24,33,38,0.08)] backdrop-blur"
         >
           First Path
           <ExternalLink className="size-4" />

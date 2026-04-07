@@ -5,6 +5,10 @@ export const scenarioTemplates = [
     id: "immunization-records",
     label: "Missing immunization records",
     studentLabel: "Health record hold",
+    routeLabel: "Health line",
+    routeColor: "#1f7a6c",
+    routeStops: ["Admitted", "Intent", "Health", "Advising", "Registered"],
+    currentStop: "Health",
     blockerTitle: "Your health record is still blocking enrollment",
     blockerDetail:
       "BMCC still needs your meningitis acknowledgment before registration can move forward.",
@@ -28,6 +32,10 @@ export const scenarioTemplates = [
     id: "fafsa-verification",
     label: "FAFSA verification hold",
     studentLabel: "Aid verification hold",
+    routeLabel: "Aid line",
+    routeColor: "#d97706",
+    routeStops: ["Admitted", "Intent", "Aid", "Advising", "Registered"],
+    currentStop: "Aid",
     blockerTitle: "Your aid file still needs one document",
     blockerDetail:
       "Financial Aid flagged your file for verification. One document is still missing, so your advising path is paused.",
@@ -52,6 +60,10 @@ export const scenarioTemplates = [
     id: "advising-hold",
     label: "Advising not completed",
     studentLabel: "Advising hold",
+    routeLabel: "Advising line",
+    routeColor: "#0f5d99",
+    routeStops: ["Admitted", "Intent", "Aid", "Advising", "Registered"],
+    currentStop: "Advising",
     blockerTitle: "You still need to complete advising",
     blockerDetail:
       "Registration will not open until your advising appointment is finished.",
