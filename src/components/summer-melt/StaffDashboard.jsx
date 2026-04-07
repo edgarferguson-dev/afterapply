@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { AlertTriangle, Copy, MonitorSmartphone, Plus, QrCode, RadioTower, RefreshCcw, Search, Shuffle, Smartphone, TrainTrack } from "lucide-react";
 import { Badge } from "../ui/badge";
@@ -110,24 +110,24 @@ function QueueCard({ caseItem, selected, onSelect, template }) {
     <button
       type="button"
       onClick={() => onSelect(caseItem.id)}
-      className={`w-full rounded-[26px] border p-4 text-left transition ${selected ? "border-[color:rgba(31,122,108,0.18)] bg-[color:rgba(31,122,108,0.08)]" : "border-[color:var(--fp-border)] bg-[color:var(--fp-surface-strong)] hover:border-slate-300"}`}
+      className={`w-full rounded-lg border p-2 text-left transition ${selected ? "border-[color:rgba(31,122,108,0.3)] bg-[color:rgba(31,122,108,0.1)]" : "border-slate-200 bg-white hover:border-slate-300"}`}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="font-semibold text-slate-950">{caseItem.studentName}</p>
-            <Badge variant={stateVariant(caseItem.escalationState)}>{caseItem.escalationState}</Badge>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1">
+            <p className="text-xs font-semibold text-slate-950">{caseItem.studentName}</p>
+            <Badge variant={stateVariant(caseItem.escalationState)} className="text-[9px] px-1 py-0.5">{caseItem.escalationState}</Badge>
           </div>
-          <p className="mt-1 text-sm text-slate-500">{template.routeLabel}</p>
-          <p className="mt-3 text-sm leading-6 text-slate-700">{caseItem.blockerTitle}</p>
-          <div className="mt-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-            <span className="inline-flex size-2 rounded-full" style={{ backgroundColor: template.routeColor }} />
-            {caseItem.nextOwnerOffice}
+          <p className="mt-1 text-[10px] text-slate-500">{template.routeLabel}</p>
+          <p className="mt-1 text-xs leading-4 text-slate-700 truncate">{caseItem.blockerTitle}</p>
+          <div className="mt-1 flex items-center gap-1">
+            <span className="inline-flex size-1.5 rounded-full" style={{ backgroundColor: template.routeColor }} />
+            <p className="text-[9px] font-semibold text-slate-500">{caseItem.nextOwnerOffice}</p>
           </div>
         </div>
-        <div className="text-right">
-          <p className="text-sm font-medium text-slate-600">{caseItem.dueLabel}</p>
-          <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{caseItem.lastActionLabel}</p>
+        <div className="text-right flex-shrink-0">
+          <p className="text-[10px] font-medium text-slate-600">{caseItem.dueLabel}</p>
+          <p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-slate-400">{caseItem.lastActionLabel}</p>
         </div>
       </div>
     </button>
@@ -285,450 +285,315 @@ export function StaffDashboard({
   );
 
   return (
-    <main className="relative mx-auto w-full max-w-[1500px] px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
-      <MotionDiv initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.42, ease: "easeOut" }} className="space-y-4">
-        <section className="grid gap-4 xl:grid-cols-[1.16fr_0.84fr]">
-          <Card className="overflow-hidden bg-[linear-gradient(135deg,#162126_0%,#1c2d33_48%,#23444e_100%)] text-white">
-            <CardContent className="p-7 sm:p-8">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="default" className="border-white/10 bg-white/10 text-white/72">First Path</Badge>
-                    <Badge variant="default" className="border-white/10 bg-white/10 text-white/72">NYC handoff board</Badge>
-                  </div>
-                  <h1 className="mt-5 max-w-3xl text-3xl font-semibold tracking-[-0.08em] sm:text-[3rem] sm:leading-[1.02]">
-                    A control room for the moment a student gets stuck.
-                  </h1>
-                  <p className="mt-4 max-w-2xl text-sm leading-7 text-white/68">
-                    Built like an operations board, not a portal. Staff starts one route, tracks one live handoff, and sees the next office light up when the student responds.
-                  </p>
+    <main className="relative h-screen w-full overflow-hidden bg-slate-50">
+      <MotionDiv initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.42, ease: "easeOut" }} className="h-full overflow-y-auto">
+        <section className="grid h-full grid-rows-[auto_1fr] gap-0">
+          <div className="grid grid-cols-2 gap-0 border-b border-slate-200 bg-[linear-gradient(135deg,#162126_0%,#1c2d33_48%,#23444e_100%)] text-white">
+            <div className="border-r border-slate-700/30 p-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Badge variant="default" className="border-white/10 bg-white/10 text-white/72 text-xs">First Path</Badge>
+                  <Badge variant="default" className="border-white/10 bg-white/10 text-white/72 text-xs">Live handoff</Badge>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="secondary" className="border-white/12 bg-white/10 text-white hover:bg-white/14" onClick={onTogglePresentation}>Presentation mode</Button>
-                  <Button variant="secondary" className="border-white/12 bg-white/10 text-white hover:bg-white/14" onClick={onResetDemo}>
-                    <RefreshCcw className="size-4" />
-                    Reset demo
+                <div className="flex gap-1">
+                  <Button variant="secondary" size="sm" className="border-white/12 bg-white/10 text-white hover:bg-white/14 px-2 py-1 text-xs" onClick={onTogglePresentation}>Present</Button>
+                  <Button variant="secondary" size="sm" className="border-white/12 bg-white/10 text-white hover:bg-white/14 px-2 py-1 text-xs" onClick={onResetDemo}>
+                    <RefreshCcw className="size-3" />
                   </Button>
                 </div>
               </div>
-              <div className="mt-8 grid gap-3 sm:grid-cols-4">
+              <h1 className="mt-2 text-lg font-semibold tracking-[-0.04em]">Control room for stuck students</h1>
+              <div className="mt-2 grid grid-cols-4 gap-2">
                 {[
-                  { label: "Live routes", value: metrics.live },
+                  { label: "Live", value: metrics.live },
                   { label: "Escalated", value: metrics.escalated },
                   { label: "Watching", value: metrics.watching },
                   { label: "Resolved", value: metrics.resolved },
                 ].map((metric) => (
-                  <div key={metric.label} className="rounded-[24px] border border-white/10 bg-white/7 px-4 py-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/52">{metric.label}</p>
-                    <p className="mt-3 text-3xl font-semibold tracking-[-0.05em]">{metric.value}</p>
+                  <div key={metric.label} className="rounded-lg border border-white/10 bg-white/7 px-2 py-2 text-center">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/52">{metric.label}</p>
+                    <p className="mt-1 text-lg font-semibold tracking-[-0.04em]">{metric.value}</p>
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-[linear-gradient(180deg,rgba(252,249,244,0.96),rgba(255,253,249,0.98))]">
-            <CardContent className="p-6 sm:p-7">
-              <div className="flex items-center justify-between gap-3">
+            </div>
+            <div className="p-4">
+              <div className="flex items-center justify-between gap-2">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Dispatch</p>
-                  <h2 className="mt-2 text-xl font-semibold tracking-[-0.04em] text-slate-950">Start a new route</h2>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">Dispatch</p>
+                  <h2 className="mt-1 text-sm font-semibold tracking-[-0.02em]">Start new route</h2>
                 </div>
-                <div className="rounded-2xl bg-[color:var(--fp-ink)] p-3 text-white">
-                  <RadioTower className="size-5" />
+                <div className="rounded-lg bg-[color:var(--fp-ink)] p-2 text-white">
+                  <RadioTower className="size-4" />
                 </div>
               </div>
-              <div className="mt-4 grid gap-3">
-                <label className="text-sm font-medium text-slate-600" htmlFor="scenario-template">Scenario template</label>
-                <select id="scenario-template" value={templateId} onChange={(event) => setTemplateId(event.target.value)} className="h-12 rounded-[18px] border border-[color:var(--fp-border)] bg-white px-4 text-sm text-slate-700 outline-none">
+              <div className="mt-2 grid gap-2">
+                <select value={templateId} onChange={(event) => setTemplateId(event.target.value)} className="h-8 rounded-lg border border-white/20 bg-white/10 px-2 text-xs text-white outline-none">
                   {scenarioTemplates.map((template) => (
-                    <option key={template.id} value={template.id}>{template.label}</option>
+                    <option key={template.id} value={template.id} className="text-slate-900">{template.label}</option>
                   ))}
                 </select>
-                <div className="rounded-[24px] bg-slate-900/[0.035] p-4 text-sm leading-7 text-slate-600">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex size-3 rounded-full" style={{ backgroundColor: selectedTemplate.routeColor }} />
-                    <p className="font-semibold text-slate-900">{selectedTemplate.routeLabel}</p>
+                <div className="rounded-lg bg-white/10 p-2 text-xs leading-5 text-white/80">
+                  <div className="flex items-center gap-1">
+                    <span className="inline-flex size-2 rounded-full" style={{ backgroundColor: selectedTemplate.routeColor }} />
+                    <p className="font-semibold text-white">{selectedTemplate.routeLabel}</p>
                   </div>
-                  <p className="mt-3 text-slate-700">{selectedTemplate.blockerTitle}</p>
-                  <p className="mt-2">Owned by {selectedTemplate.ownerOffice}. Student sees one blocker and one short set of responses.</p>
+                  <p className="mt-1 text-white/80">{selectedTemplate.blockerTitle}</p>
                 </div>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <Button onClick={() => onCreateCase(templateId, "hero")}>
-                    <Plus className="size-4" />
-                    Hero mode
+                <div className="grid grid-cols-2 gap-1">
+                  <Button size="sm" onClick={() => onCreateCase(templateId, "hero")} className="h-7 text-xs">
+                    <Plus className="size-3" />
+                    Hero
                   </Button>
-                  <Button variant="secondary" onClick={() => onCreateCase(templateId, "shuffle")}>
-                    <Shuffle className="size-4" />
-                    Shuffle mode
+                  <Button variant="secondary" size="sm" onClick={() => onCreateCase(templateId, "shuffle")} className="h-7 text-xs">
+                    <Shuffle className="size-3" />
+                    Shuffle
                   </Button>
                 </div>
-                <div className="rounded-[24px] border border-[color:var(--fp-line)] bg-white/72 p-4 text-sm">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Trigger status</p>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid h-full grid-cols-3 gap-0">
+          <div className="border-r border-slate-200 bg-white">
+            <div className="border-b border-slate-200 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Active cases</p>
+                  <h2 className="mt-1 text-sm font-semibold tracking-[-0.02em] text-slate-950">Control queue</h2>
+                </div>
+                <Badge variant="default" className="text-xs">{filteredCases.length}</Badge>
+              </div>
+              <div className="mt-2 grid gap-2">
+                <input
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search student, case, blocker"
+                  className="h-8 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-700 outline-none"
+                />
+                <div className="grid grid-cols-2 gap-1">
+                  <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-7 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-700 outline-none">
+                    <option value="all">All</option>
+                    <option value="Watching">Watching</option>
+                    <option value="Escalated">Escalated</option>
+                    <option value="Review needed">Review</option>
+                    <option value="Resolved">Resolved</option>
+                  </select>
+                  <select value={officeFilter} onChange={(event) => setOfficeFilter(event.target.value)} className="h-7 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-700 outline-none">
+                    <option value="all">All offices</option>
+                    {["Admissions Support", "Financial Aid", "Health Compliance", "Advising", "Registrar"].map((office) => (
+                      <option key={office} value={office}>{office}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+              <div className="p-2 space-y-2">
+                {filteredCases.map((caseItem) => (
+                  <QueueCard
+                    key={caseItem.id}
+                    caseItem={caseItem}
+                    selected={selectedCase.id === caseItem.id}
+                    onSelect={onSelectCase}
+                    template={routeTemplate(scenarioTemplates, caseItem)}
+                  />
+                ))}
+                {filteredCases.length === 0 && (
+                  <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-3 text-center text-xs text-slate-500">
+                    No cases match filters
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="border-r border-slate-200 bg-slate-50">
+            <div className="border-b border-slate-200 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Selected case</p>
+                  <h2 className="mt-1 text-sm font-semibold tracking-[-0.02em] text-slate-950">{selectedCase.studentName}</h2>
+                </div>
+                <div className="flex gap-1">
+                  <Badge variant="gold" className="text-[9px]">{selectedCase.urgency}</Badge>
+                  <Badge variant={stateVariant(selectedCase.escalationState)} className="text-[9px]">{selectedCase.escalationState}</Badge>
+                </div>
+              </div>
+            </div>
+            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+              <div className="p-3 space-y-3">
+                <div className="rounded-lg bg-white p-3">
+                  <div className="flex items-center justify-between gap-2">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Live session created</p>
-                      <p className="mt-1 font-semibold text-slate-950">{selectedCase.sessionId}</p>
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400">Current blocker</p>
+                      <h3 className="mt-1 text-sm font-semibold tracking-[-0.02em] text-slate-950">{selectedCase.blockerTitle}</h3>
                     </div>
+                    <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1">
+                      <span className="inline-flex size-1.5 rounded-full" style={{ backgroundColor: selectedRoute.routeColor }} />
+                      <p className="text-[9px] font-semibold text-slate-600">{selectedRoute.routeLabel}</p>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-slate-600">{selectedCase.blockerDetail}</p>
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    {selectedRoute.routeStops.map((stop, index) => {
+                      const active = stop === selectedRoute.currentStop;
+                      return (
+                        <div key={stop} className="flex items-center gap-1">
+                          <div className={`flex items-center gap-1 rounded-full px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] ${active ? "text-white" : "bg-slate-100 text-slate-500"}`} style={active ? { backgroundColor: selectedRoute.routeColor } : undefined}>
+                            <span className={`inline-flex size-1 rounded-full ${active ? "bg-white" : "bg-slate-300"}`} />
+                            {stop}
+                          </div>
+                          {index < selectedRoute.routeStops.length - 1 && <div className="h-px w-2 bg-slate-200" />}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-white p-3">
+                  <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400">Process steps</p>
+                  <div className="mt-2 grid grid-cols-3 gap-1">
+                    {selectedProcess.steps.map((step, index) => {
+                      const isCurrent = index === selectedProcess.currentIndex;
+                      const isDone = step.done;
+                      return (
+                        <div key={step.id} className={`rounded border px-2 py-2 text-center ${isCurrent ? "border-blue-200 bg-blue-50" : isDone ? "border-green-200 bg-green-50" : "border-slate-200 bg-white"}`}>
+                          <div className="flex items-center justify-center gap-1">
+                            <span className={`inline-flex size-1.5 rounded-full ${isCurrent ? "bg-blue-500" : isDone ? "bg-green-500" : "bg-slate-300"}`} />
+                            <p className="text-[8px] font-semibold text-slate-600">{index + 1}</p>
+                          </div>
+                          <p className="mt-1 text-[9px] font-semibold text-slate-700">{step.label}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-lg bg-white p-2">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400">Owner</p>
+                    <p className="mt-1 text-xs font-semibold text-slate-950">{selectedCase.nextOwnerOffice}</p>
+                  </div>
+                  <div className="rounded-lg bg-white p-2">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400">Student state</p>
+                    <p className="mt-1 text-xs font-semibold text-slate-950">{selectedCase.studentState}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-blue-50 p-3">
+                  <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-blue-600">System decision</p>
+                  <p className="mt-1 text-xs font-semibold text-blue-900">{selectedLogic.interpretation}</p>
+                </div>
+
+                <div className="rounded-lg bg-slate-100 p-3">
+                  <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-600">Next action</p>
+                  <p className="mt-1 text-xs font-semibold text-slate-900">{selectedLogic.nextAction}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white">
+            <div className="border-b border-slate-200 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Student access</p>
+                  <h3 className="mt-1 text-sm font-semibold tracking-[-0.02em] text-slate-950">QR & live preview</h3>
+                </div>
+                <Badge variant="default" className="text-[9px]">{selectedRoute.routeLabel}</Badge>
+              </div>
+            </div>
+            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+              <div className="p-3 space-y-3">
+                {presentationMode && (
+                  <div className="rounded-lg bg-slate-50 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400">Presentation</p>
+                        <p className="mt-1 text-xs font-semibold text-slate-950">Mirrored session</p>
+                      </div>
+                      <Badge variant="aqua" className="text-[9px]">Live preview</Badge>
+                    </div>
+                    <div className="mt-2">
+                      {children}
+                    </div>
+                  </div>
+                )}
+
+                {!presentationMode && children}
+
+                <div className="rounded-lg border border-slate-200 p-3">
+                  <div className="flex items-center justify-between gap-2">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Case ID</p>
-                      <p className="mt-1 font-semibold text-slate-950">{selectedCase.id}</p>
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400">System activity</p>
+                      <p className="mt-1 text-xs font-semibold text-slate-950">Automation feed</p>
                     </div>
+                    <Badge variant="default" className="text-[9px]">{automationEvents.length}</Badge>
+                  </div>
+                  <div className="mt-2 space-y-2">
+                    {automationEvents.slice(0, 4).map((event) => (
+                      <div key={event.id} className={`rounded border p-2 text-xs ${toneClasses(eventTone(event.type))}`}>
+                        <div className="flex items-start justify-between gap-1">
+                          <div>
+                            <p className="text-[8px] font-semibold uppercase tracking-[0.12em] opacity-70">{eventLabel(event.type)}</p>
+                            <p className="mt-1 text-xs font-semibold">{event.title}</p>
+                          </div>
+                          <Badge variant="default" className="text-[8px]">{event.sessionId}</Badge>
+                        </div>
+                        <p className="mt-1 text-xs leading-4">{event.detail}</p>
+                        <div className="mt-1 flex items-center justify-between gap-1 text-[8px] font-semibold uppercase tracking-[0.12em] opacity-70">
+                          <span>{event.studentName}</span>
+                          <span>{formatDateTime(event.at)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-slate-200 p-3">
+                  <div className="flex items-center justify-between gap-2">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">QR status</p>
-                      <p className="mt-1 font-semibold text-slate-950">Ready to share</p>
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400">Alerts</p>
+                      <p className="mt-1 text-xs font-semibold text-slate-950">Ownership changes</p>
                     </div>
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Session state</p>
-                      <p className="mt-1 font-semibold text-slate-950">{selectedCase.sessionState}</p>
-                    </div>
+                    <Badge variant="default" className="text-[9px]">{alerts.length}</Badge>
+                  </div>
+                  <div className="mt-2 space-y-2">
+                    {alerts.length === 0 ? (
+                      <div className="rounded border border-dashed border-slate-200 bg-slate-50 p-2 text-center text-xs text-slate-500">
+                        No alerts yet
+                      </div>
+                    ) : (
+                      alerts.slice(0, 3).map((alert) => (
+                        <div key={alert.id} className={`rounded border p-2 text-xs ${toneClasses(alert.tone)}`}>
+                          <div className="flex items-start justify-between gap-1">
+                            <div>
+                              <p className="text-xs font-semibold">{alert.title}</p>
+                              <p className="mt-1 text-[8px] opacity-80">{alert.studentName}</p>
+                            </div>
+                            <Badge variant="default" className="text-[8px]">{alert.office}</Badge>
+                          </div>
+                          <p className="mt-1 text-xs leading-4">{alert.body}</p>
+                          <p className="mt-1 text-[8px] font-semibold uppercase tracking-[0.12em] opacity-70">{formatDateTime(alert.at)}</p>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        <section className={`grid gap-4 xl:items-start ${presentationMode ? "xl:grid-cols-[minmax(0,1.08fr)_minmax(380px,0.92fr)]" : "xl:grid-cols-[minmax(0,1.36fr)_minmax(320px,0.74fr)]"}`}>
-          <div className="space-y-4">
-            <div className="grid gap-4 xl:grid-cols-[minmax(320px,0.72fr)_minmax(0,1.28fr)] xl:items-start">
-              <Card className="bg-[linear-gradient(180deg,rgba(255,252,247,0.95),rgba(248,244,239,0.96))]">
-                <CardContent className="p-5 sm:p-6">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Active cases</p>
-                      <h2 className="mt-2 text-xl font-semibold tracking-[-0.04em] text-slate-950">Control queue</h2>
-                    </div>
-                    <Badge variant="default">{filteredCases.length} active</Badge>
-                  </div>
-                  <div className="mt-4 grid gap-3">
-                    <label className="relative block">
-                      <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                      <input
-                        value={searchQuery}
-                        onChange={(event) => setSearchQuery(event.target.value)}
-                        placeholder="Search student, case ID, or blocker"
-                        className="h-12 w-full rounded-[18px] border border-[color:var(--fp-line)] bg-white pl-11 pr-4 text-sm text-slate-700 outline-none"
-                      />
-                    </label>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-11 rounded-[16px] border border-[color:var(--fp-line)] bg-white px-4 text-sm text-slate-700 outline-none">
-                        <option value="all">All statuses</option>
-                        <option value="Watching">Watching</option>
-                        <option value="Escalated">Escalated</option>
-                        <option value="Review needed">Awaiting review</option>
-                        <option value="Resolved">Resolved</option>
-                      </select>
-                      <select value={officeFilter} onChange={(event) => setOfficeFilter(event.target.value)} className="h-11 rounded-[16px] border border-[color:var(--fp-line)] bg-white px-4 text-sm text-slate-700 outline-none">
-                        <option value="all">All offices</option>
-                        {["Admissions Support", "Financial Aid", "Health Compliance", "Advising", "Registrar"].map((office) => (
-                          <option key={office} value={office}>{office}</option>
-                        ))}
-                      </select>
-                      <select value={urgencyFilter} onChange={(event) => setUrgencyFilter(event.target.value)} className="h-11 rounded-[16px] border border-[color:var(--fp-line)] bg-white px-4 text-sm text-slate-700 outline-none">
-                        <option value="all">All urgency</option>
-                        {[...new Set(scenarioTemplates.map((template) => template.urgency))].map((urgency) => (
-                          <option key={urgency} value={urgency}>{urgency}</option>
-                        ))}
-                      </select>
-                      <select value={scenarioFilter} onChange={(event) => setScenarioFilter(event.target.value)} className="h-11 rounded-[16px] border border-[color:var(--fp-line)] bg-white px-4 text-sm text-slate-700 outline-none">
-                        <option value="all">All scenario types</option>
-                        {scenarioTemplates.map((template) => (
-                          <option key={template.id} value={template.id}>{template.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div className="mt-4 rounded-[18px] border border-[color:var(--fp-line)] bg-[color:var(--fp-surface-2)] px-4 py-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Legend</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Badge variant="aqua">Awaiting student</Badge>
-                      <Badge variant="gold">Support requested</Badge>
-                      <Badge variant="coral">Escalated</Badge>
-                      <Badge variant="success">Resolved</Badge>
-                    </div>
-                  </div>
-                  <div className="mt-4 space-y-3">
-                    {filteredCases.map((caseItem) => (
-                      <QueueCard
-                        key={caseItem.id}
-                        caseItem={caseItem}
-                        selected={selectedCase.id === caseItem.id}
-                        onSelect={onSelectCase}
-                        template={routeTemplate(scenarioTemplates, caseItem)}
-                      />
-                    ))}
-                    {filteredCases.length === 0 && (
-                      <div className="rounded-[22px] border border-dashed border-[color:var(--fp-line)] bg-white/60 p-5 text-sm text-slate-500">
-                        No active exceptions match these filters.
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-[linear-gradient(180deg,rgba(255,253,249,0.96),rgba(249,245,239,0.96))]">
-                <CardContent className="p-6 sm:p-7">
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                      <div className="flex flex-wrap gap-2">
-                        <Badge variant="gold">{selectedCase.urgency}</Badge>
-                        <Badge variant={stateVariant(selectedCase.escalationState)}>{selectedCase.escalationState}</Badge>
-                      </div>
-                      <h2 className="mt-3 text-2xl font-semibold tracking-[-0.05em] text-slate-950">{selectedCase.studentName}</h2>
-                      <p className="mt-2 text-sm leading-6 text-slate-600">{selectedCase.highSchoolName} to {selectedCase.collegeName}</p>
-                    </div>
-                    <Button variant="secondary" onClick={() => onForceEscalation(selectedCase.id)}>
-                      <AlertTriangle className="size-4" />
-                      Escalate silence
-                    </Button>
-                  </div>
-                  <div className="mt-6 space-y-4">
-                    <div className="rounded-[28px] bg-[color:var(--fp-ink)] px-5 py-5 text-white">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">Current blocker</p>
-                          <h3 className="mt-3 text-xl font-semibold tracking-[-0.04em]">{selectedCase.blockerTitle}</h3>
-                        </div>
-                        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-white/72">
-                          <TrainTrack className="size-3.5" />
-                          {selectedRoute.routeLabel}
-                        </div>
-                      </div>
-                      <p className="mt-3 text-sm leading-7 text-white/72">{selectedCase.blockerDetail}</p>
-                      <div className="mt-5 flex flex-wrap items-center gap-2">
-                        {selectedRoute.routeStops.map((stop, index) => {
-                          const active = stop === selectedRoute.currentStop;
-                          return (
-                            <div key={stop} className="flex items-center gap-2">
-                              <div className={`flex items-center gap-2 rounded-full px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] ${active ? "text-white" : "bg-white/8 text-white/54"}`} style={active ? { backgroundColor: selectedRoute.routeColor } : undefined}>
-                                <span className={`inline-flex size-2 rounded-full ${active ? "bg-white" : "bg-white/30"}`} />
-                                {stop}
-                              </div>
-                              {index < selectedRoute.routeStops.length - 1 && <div className="h-px w-4 bg-white/14 sm:w-6" />}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    <div className="rounded-[24px] border border-[color:var(--fp-line)] bg-white/72 p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Live process</p>
-                          <p className="mt-2 text-sm text-slate-600">The active step shows where this case is in the handoff loop right now.</p>
-                        </div>
-                        <Badge variant="aqua">Session live</Badge>
-                      </div>
-                      <div className="mt-4 grid gap-3 md:grid-cols-6">
-                        {selectedProcess.steps.map((step, index) => {
-                          const isCurrent = index === selectedProcess.currentIndex;
-                          const isDone = step.done;
-                          return (
-                            <div key={step.id} className={`rounded-[20px] border px-3 py-4 ${isCurrent ? "border-[color:rgba(0,120,198,0.18)] bg-[color:rgba(0,120,198,0.08)]" : isDone ? "border-[color:rgba(47,125,87,0.16)] bg-[color:rgba(47,125,87,0.08)]" : "border-[color:var(--fp-line)] bg-[color:var(--fp-surface)]"}`}>
-                              <div className="flex items-center gap-2">
-                                <span className={`inline-flex size-2.5 rounded-full ${isCurrent ? "bg-[color:var(--fp-blue)]" : isDone ? "bg-[color:var(--fp-success)]" : "bg-[color:var(--fp-line)]"}`} />
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{index + 1}</p>
-                              </div>
-                              <p className="mt-3 text-sm font-semibold text-slate-900">{step.label}</p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      <div className="rounded-[24px] bg-white/72 p-4 text-sm text-slate-700">
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Owner now</p>
-                        <p className="mt-2 font-semibold text-slate-950">{selectedCase.nextOwnerOffice}</p>
-                      </div>
-                      <div className="rounded-[24px] bg-white/72 p-4 text-sm text-slate-700">
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Student state</p>
-                        <p className="mt-2 font-semibold text-slate-950">{selectedCase.studentState}</p>
-                      </div>
-                      <div className="rounded-[24px] bg-white/72 p-4 text-sm text-slate-700">
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Last changed</p>
-                        <p className="mt-2 font-semibold text-slate-950">{formatDateTime(selectedCase.lastUpdatedAt)}</p>
-                      </div>
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                      <div className="rounded-[24px] bg-white/72 p-4 text-sm text-slate-700">
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Trigger mode</p>
-                        <p className="mt-2 font-semibold capitalize text-slate-950">{selectedCase.triggerMode}</p>
-                        <p className="mt-1 text-slate-500">This case was started from the control room.</p>
-                      </div>
-                      <div className="rounded-[24px] bg-white/72 p-4 text-sm text-slate-700">
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Student response</p>
-                        <p className="mt-2 font-semibold text-slate-950">{selectedCase.lastActionLabel}</p>
-                        <p className="mt-1 text-slate-500">{selectedCase.studentState}</p>
-                      </div>
-                      <div className="rounded-[24px] bg-white/72 p-4 text-sm text-slate-700">
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Next owner office</p>
-                        <p className="mt-2 font-semibold text-slate-950">{selectedCase.nextOwnerOffice}</p>
-                        <p className="mt-1 text-slate-500">This office owns the next human action.</p>
-                      </div>
-                    </div>
-                    <div className="grid gap-3 lg:grid-cols-2">
-                      <div className="rounded-[24px] border border-[color:rgba(0,120,198,0.14)] bg-[color:rgba(0,120,198,0.06)] p-5">
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Automation decision</p>
-                        <p className="mt-3 text-base font-semibold text-slate-950">{selectedLogic.interpretation}</p>
-                      </div>
-                      <div className="rounded-[24px] border border-[color:var(--fp-line)] bg-white/72 p-5">
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">What happens next</p>
-                        <p className="mt-3 text-base font-semibold text-slate-950">{selectedLogic.nextAction}</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
-
-            <Card className="bg-[linear-gradient(180deg,rgba(255,252,247,0.96),rgba(249,245,240,0.96))]">
-              <CardContent className="p-5 sm:p-6">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Student access</p>
-                    <h3 className="mt-2 text-xl font-semibold tracking-[-0.04em] text-slate-950">Live handoff surface</h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">Session {selectedCase.sessionId} is live and awaiting the next student or staff move.</p>
-                  </div>
-                  <Badge variant="default">{selectedRoute.routeLabel}</Badge>
-                </div>
-                <div className="mt-4 rounded-[24px] border border-[color:var(--fp-line)] bg-[color:rgba(255,255,255,0.64)] p-4 sm:p-5">
-                  <QRCodePanel caseItem={selectedCase} onNavigate={onNavigate} embedded />
-                </div>
-                <div className="mt-4 rounded-[24px] border border-[color:var(--fp-line)] bg-[color:rgba(255,255,255,0.58)] p-4 sm:p-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Latest movement</p>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    {selectedCase.timeline.slice(0, 4).map((entry, index) => (
-                      <div key={entry.id} className="relative rounded-[22px] bg-white/82 p-4">
-                        <div className="absolute left-4 top-5 flex size-6 items-center justify-center rounded-full text-[11px] font-semibold text-white" style={{ backgroundColor: index === 0 ? selectedRoute.routeColor : "#9aa4aa" }}>
-                          {index + 1}
-                        </div>
-                        <div className="pl-10">
-                          <p className="text-sm font-semibold text-slate-900">{entry.title}</p>
-                          <p className="mt-1 text-sm leading-6 text-slate-600">{entry.detail}</p>
-                          <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{formatDateTime(entry.at)}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid content-start gap-4 xl:self-start">
-            {presentationMode && (
-              <Card className="overflow-hidden bg-[linear-gradient(180deg,rgba(255,252,247,0.96),rgba(248,244,239,0.96))]">
-                <CardContent className="p-5 sm:p-6">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Presentation mode</p>
-                      <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-slate-950">Mirrored student session</h3>
-                      <p className="mt-2 text-sm leading-6 text-slate-600">This phone frame mirrors the same active session shown in the control room while QR still works for a real phone scan.</p>
-                    </div>
-                    <Badge variant="aqua">One-screen demo</Badge>
-                  </div>
-                  <div className="mt-5">
-                    <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                      <MonitorSmartphone className="size-4" />
-                      Live mobile preview
-                    </div>
-                    {children}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {!presentationMode && children}
-
-            <Card className="bg-[linear-gradient(180deg,rgba(255,252,247,0.96),rgba(248,244,239,0.96))]">
-              <CardContent className="p-5 sm:p-6">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Automation feed</p>
-                    <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-slate-950">System activity</h3>
-                  </div>
-                  <Badge variant="default">{automationEvents.length}</Badge>
-                </div>
-                <div className="mt-4 space-y-3">
-                  {automationEvents.map((event) => (
-                    <div key={event.id} className={`rounded-[22px] border p-4 ${toneClasses(eventTone(event.type))}`}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] opacity-70">{eventLabel(event.type)}</p>
-                          <p className="mt-2 font-semibold">{event.title}</p>
-                        </div>
-                        <Badge variant="default">{event.sessionId}</Badge>
-                      </div>
-                      <p className="mt-3 text-sm leading-6">{event.detail}</p>
-                      <div className="mt-3 flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.14em] opacity-70">
-                        <span>{event.studentName}</span>
-                        <span>{formatDateTime(event.at)}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-[linear-gradient(180deg,rgba(255,252,247,0.96),rgba(248,244,239,0.96))]">
-              <CardContent className="p-5 sm:p-6">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Signals</p>
-                    <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-slate-950">Ownership changes and follow-up</h3>
-                  </div>
-                  <Badge variant="default">{alerts.length}</Badge>
-                </div>
-                <div className="mt-4 space-y-3">
-                  {alerts.length === 0 ? (
-                    <div className="rounded-[24px] border border-dashed border-[color:var(--fp-border)] bg-slate-50/70 p-6 text-sm text-slate-500">
-                      No alerts yet. Student actions will show up here.
-                    </div>
-                  ) : (
-                    alerts.map((alert) => (
-                      <div key={alert.id} className={`rounded-[22px] border p-4 ${toneClasses(alert.tone)}`}>
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-semibold">{alert.title}</p>
-                            <p className="mt-1 text-sm opacity-80">{alert.studentName}</p>
-                          </div>
-                          <Badge variant="default">{alert.office}</Badge>
-                        </div>
-                        <p className="mt-3 text-sm leading-6">{alert.body}</p>
-                        <p className="mt-3 text-xs font-semibold uppercase tracking-[0.14em] opacity-70">{formatDateTime(alert.at)}</p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="overflow-hidden bg-[linear-gradient(135deg,#162126_0%,#1b2a2f_45%,#1d3940_100%)] text-white">
-              <CardContent className="p-5 sm:p-6">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/50">Office board</p>
-                    <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em]">Where the next action goes</h3>
-                  </div>
-                  <RadioTower className="size-5 text-white/60" />
-                </div>
-                <div className="mt-5 space-y-3">
-                  {officeBoard.map((row) => (
-                    <div key={row.office} className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-[20px] border border-white/8 bg-white/7 px-4 py-4">
-                      <div>
-                        <p className="text-sm font-semibold">{row.office}</p>
-                        <p className="mt-1 text-xs uppercase tracking-[0.14em] text-white/48">Active ownership</p>
-                      </div>
-                      <div className="text-2xl font-semibold tracking-[-0.04em]">{row.count}</div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </section>
       </MotionDiv>
     </main>
   );
-}
-
+                < / s e c t i o n > 
+             < / M o t i o n D i v > 
+         < / m a i n > 
+     ) ; 
+ }  
+  
+ }  
+ 
