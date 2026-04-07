@@ -589,11 +589,4 @@ export function StaffDashboard({
       </MotionDiv>
     </main>
   );
-                < / s e c t i o n > 
-             < / M o t i o n D i v > 
-         < / m a i n > 
-     ) ; 
- }  
-  
- }  
- 
+}
